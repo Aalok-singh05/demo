@@ -1,0 +1,126 @@
+PROBLEM STATEMENT
+
+THE “EVENT LOGISTICS” SWARM
+Multi-Agent Orchestration for Large-Scale Technical Events
+
+CONTEXT & BACKGROUND
+
+Running a massive, multi-day technical event like a hackathon or a campus-wide tech summit is a logistical nightmare. Organizers are bogged down by repetitive manual tasks: blasting promotional emails, resolving overlapping speaker schedules, and trying to figure out the best time to post on social media.
+
+THE CHALLENGE
+
+Participants must build a localized, multi-agent AI system (a “Swarm”) designed to act as a fully autonomous organizing committee.
+
+Instead of a simple chatbot, this system must feature distinct, specialized agents that communicate with each other to handle the operational overhead of a large event.
+
+TECHNICAL CONSTRAINTS AND REQUIREMENTS
+THE CONTENT STRATEGIST & SOCIAL MEDIA AGENT
+
+Acts as the marketing lead.
+
+The organizer can drop in a raw text prompt. The agent:
+
+Generates promotional copy
+
+Suggests a series of posts to build hype
+
+Analyzes historical engagement data to recommend optimal release times
+
+Queues the content for execution
+
+THE COMMUNICATIONS & TARGETED MAILING AGENT
+
+Streamlines participant outreach.
+
+The organizer uploads a raw event registration sheet (CSV/Excel) and provides a base email draft.
+
+The agent:
+
+Extracts and validates emails
+
+Dynamically personalizes the draft for each recipient using data from the sheet
+
+Handles automated bulk distribution to segmented groups
+
+THE DYNAMIC SCHEDULER & CONFLICT RESOLVER AGENT
+
+Manages the master timeline.
+
+The organizer inputs rough constraints.
+
+The agent:
+
+Builds the schedule
+
+If a new constraint is introduced mid-event, the agent autonomously recalculates the entire schedule
+
+Resolves new clashes
+
+Triggers the email agent to notify participants of the change
+
+KEY FEATURES TO INCLUDE
+Core Architecture Requirement
+
+Submissions must explicitly utilize a multi-agent orchestrator
+(e.g., LangGraph, AutoGen, CrewAI, or a custom implementation) to manage:
+
+state
+
+memory
+
+task handoffs between specialized agents
+
+Functional Prototype
+
+A working interface (for example a web dashboard) that allows an organizer to:
+
+input event parameters
+
+upload data
+
+interact with the swarm
+
+Open Innovation
+
+The agent roles listed above are just a baseline.
+
+Teams are highly encouraged to build upon this foundation by introducing:
+
+entirely new agents
+
+unexpected features
+
+creative solutions to real-world event management bottlenecks
+
+NOTE
+
+The agent roles outlined above serve as the baseline requirements.
+
+Participants are highly encouraged to incorporate their own innovations and ideas into the prototype.
+
+JUDGING CRITERIA
+Core Implementation — 25 Points
+
+True multi-agent architecture (e.g., LangGraph, CrewAI), seamless autonomous handoffs, and shared memory between agents.
+
+Baseline Functionality — 25 Points
+
+Successful execution of the core tasks:
+
+content generation
+
+dynamic email distribution
+
+autonomous schedule conflict resolution
+
+UI/UX & Experience — 20 Points
+
+Intuitive dashboard, clear visibility into the swarm's actions, and easy human-in-the-loop approval controls.
+
+Open Innovation — 20 Points
+
+Addition of novel agents or creative features that solve real-world logistics bottlenecks beyond the basic prompt.
+
+Viability & Pitch — 10 Points
+
+Practical readiness to manage an actual event and a clear, effective live demonstration.
