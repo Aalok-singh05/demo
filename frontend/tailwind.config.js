@@ -7,15 +7,15 @@ export default {
   theme: {
     extend: {
       colors: {
-        background: '#0a0f1e',
-        card: '#111827',
+        background: '#000000',
+        card: 'rgba(20, 20, 20, 0.65)',
         primary: '#3b82f6',
         success: '#10b981',
         warning: '#f59e0b',
         error: '#ef4444',
         text: {
-          primary: '#f9fafb',
-          secondary: '#9ca3af'
+          primary: '#FFFFFF',
+          secondary: '#AFAFAF'
         },
         agents: {
           chronos: '#60a5fa',

@@ -61,8 +61,9 @@ const ActivityFeed = () => {
     ];
 
     return (
-        <div className="bg-card border border-gray-800 rounded-xl shadow-sm h-full flex flex-col min-h-[400px]">
-            <div className="p-5 border-b border-gray-800 flex justify-between items-center bg-gray-900/40 rounded-t-xl">
+        <div className="glass-card shadow-sm h-full flex flex-col min-h-[400px]">
+            {/* Updated Header background to #404146 (matching the reference image's UI hierarchy) */}
+            <div className="p-5 border-b border-white/10 flex justify-between items-center rounded-t-xl bg-black/20">
                 <h3 className="font-semibold text-white">Live Activity Feed</h3>
                 <span className={`flex items-center text-xs px-2 py-1 rounded border ${isConnected ? 'text-success bg-success/10 border-success/20' : 'text-gray-400 bg-gray-800 border-gray-700'}`}>
                     <span className={`w-1.5 h-1.5 rounded-full mr-1.5 ${isConnected ? 'bg-success animate-ping' : 'bg-gray-500'}`}></span>
@@ -73,7 +74,7 @@ const ActivityFeed = () => {
             <div className="p-5 flex-1 overflow-y-auto">
                 {loading ? (
                     <div className="space-y-4">
-                        {[1,2,3].map(i => (
+                        {[1, 2, 3].map(i => (
                             <div key={i} className="animate-pulse flex gap-4">
                                 <div className="w-8 h-8 rounded-full bg-gray-700" />
                                 <div className="flex-1 space-y-2"><div className="h-4 bg-gray-700 rounded w-3/4" /><div className="h-3 bg-gray-700 rounded w-1/2" /></div>
@@ -88,19 +89,20 @@ const ActivityFeed = () => {
                             const color = agentColors[item.agent] || 'border-gray-500';
                             return (
                                 <div key={item.id} className="relative flex gap-4">
-                                    <div className={`w-8 h-8 rounded-full bg-background border-2 ${color} flex items-center justify-center z-10 flex-shrink-0 shadow-sm`}>
+                                    <div className={`w-8 h-8 rounded-full bg-black border-2 ${color} flex items-center justify-center z-10 flex-shrink-0 shadow-sm`}>
                                         <Icon size={14} className={color.replace('border-', 'text-')} />
                                     </div>
                                     <div className="flex-1 mt-1">
                                         <div className="flex items-baseline gap-2 mb-1">
-                                            <span className="text-xs text-gray-500 font-mono">{item.time}</span>
+                                            <span className="text-xs text-gray-400 font-mono">{item.time}</span>
                                             <span className={`text-xs font-bold ${color.replace('border-', 'text-')}`}>{item.agent}</span>
                                             {item.status === 'working' && <span className="text-[10px] text-warning bg-warning/10 px-1.5 py-0.5 rounded border border-warning/20">Working</span>}
                                         </div>
-                                        <div className="bg-[#1e293b]/50 border border-gray-800 rounded-lg p-3 text-sm text-gray-300">
+                                        {/* Updated inner card background to #404146 */}
+                                        <div className="bg-black/30 border border-white/10 rounded-lg p-3 text-sm text-gray-300">
                                             <p>{item.text}</p>
                                             {item.details && (
-                                                <p className="mt-2 text-xs text-gray-500 border-t border-gray-800 pt-2">{item.details}</p>
+                                                <p className="mt-2 text-xs text-gray-500 border-t border-white/10 pt-2">{item.details}</p>
                                             )}
                                         </div>
                                     </div>

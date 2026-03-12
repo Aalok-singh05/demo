@@ -7,3 +7,51 @@
     @apply bg-background text-text-primary antialiased;
   }
 }
+
+@layer utilities {
+  .bg-light-streaks {
+    background-image: 
+      linear-gradient(135deg, rgba(255,255,255,0.03) 0%, transparent 20%, transparent 40%, rgba(255,255,255,0.04) 50%, transparent 60%),
+      radial-gradient(circle at 15% 50%, rgba(255,255,255,0.02) 0%, transparent 30%),
+      radial-gradient(circle at 85% 30%, rgba(255,255,255,0.03) 0%, transparent 40%);
+    background-color: #000000;
+  }
+
+  .glass-card {
+    background-color: rgba(20, 20, 20, 0.65);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 0.5px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);
+    border-radius: 16px;
+  }
+
+  .btn-primary-glass {
+    background: linear-gradient(180deg, #FFFFFF 0%, #E0E0E0 100%);
+    color: #000000;
+    border: none;
+    font-weight: 600;
+    border-radius: 8px;
+    box-shadow: 0 4px 14px rgba(255,255,255,0.1);
+    transition: all 0.2s ease;
+  }
+
+  .btn-primary-glass:hover {
+    box-shadow: 0 6px 20px rgba(255,255,255,0.2);
+    transform: translateY(-1px);
+  }
+
+  .btn-secondary-glass {
+    background-color: #181818;
+    color: #FFFFFF;
+    border: 0.5px solid rgba(255, 255, 255, 0.15);
+    font-weight: 600;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+  }
+
+  .btn-secondary-glass:hover {
+    background-color: #222222;
+    border-color: rgba(255, 255, 255, 0.25);
+  }
+}

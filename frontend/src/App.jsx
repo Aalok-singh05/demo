@@ -1,60 +1,53 @@
-import { useState } from 'react';
+import { Suspense, lazy } from 'react';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import Layout from './components/layout/Layout';
+import Loading from './components/layout/Loading';
+import NotFound from './pages/NotFound';
+import LandingPage from './pages/LandingPage';
+import LoginPage from './pages/LoginPage';
+import ProtectedRoute from './components/layout/ProtectedRoute';
 
-// Import Dashboard Components
-import EventOverview from './components/dashboard/EventOverview';
-import QuickInsights from './components/dashboard/QuickInsights';
-import ActivityFeed from './components/dashboard/ActivityFeed';
-import PendingApprovals from './components/dashboard/PendingApprovals';
+// Lazy loaded pages
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const Schedule = lazy(() => import('./components/schedule/ScheduleView'));
+const MailCenter = lazy(() => import('./components/mail/MailCenter'));
+const ContentStudio = lazy(() => import('./components/content/ContentStudio'));
+const Activity = lazy(() => import('./components/activity/AgentActivity'));
 
-const Dashboard = () => (
-  <div className="space-y-6 h-full pb-8">
-    <div className="flex justify-between items-end">
-      <h2 className="text-3xl font-bold tracking-tight text-white drop-shadow-sm">Dashboard Overview</h2>
-      <div className="text-sm text-text-secondary bg-card px-3 py-1.5 rounded-md border border-gray-800 flex items-center gap-2 shadow-inner shadow-black/20">
-        <span className="w-2 h-2 rounded-full bg-success animate-pulse"></span>
-        <span>Live Mode: <span className="text-success font-medium">Connected</span></span>
-      </div>
-    </div>
-    
-    <EventOverview />
-    
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      <div className="lg:col-span-2 space-y-6">
-         <ActivityFeed />
-      </div>
-      <div className="space-y-6">
-         <PendingApprovals />
-         <QuickInsights />
-      </div>
-    </div>
-  </div>
-);
-
-import Schedule from './components/schedule/ScheduleView';
-import MailCenter from './components/mail/MailCenter';
-import ContentStudio from './components/content/ContentStudio';
-import Activity from './components/activity/AgentActivity';
-
-function App() {
-  const [activeTab, setActiveTab] = useState('dashboard');
-
-  const renderPage = () => {
-    switch(activeTab) {
-      case 'dashboard': return <Dashboard />;
-      case 'schedule': return <Schedule />;
-      case 'mail': return <MailCenter />;
-      case 'content': return <ContentStudio />;
-      case 'activity': return <Activity />;
-      default: return <Dashboard />;
-    }
-  };
-
+const App = () => {
   return (
-    <Layout activeTab={activeTab} setActiveTab={setActiveTab}>
-      {renderPage()}
-    </Layout>
+    <BrowserRouter>
+      <Routes>
+        {/* Public Routes */}
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/login" element={<LoginPage />} />
+
+        {/* Protected Dashboard Routes */}
+        <Route 
+          path="/dashboard/*" 
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <Suspense fallback={<Loading />}>
+                  <Routes>
+                    <Route path="/" element={<Dashboard />} />
+                    <Route path="schedule" element={<Schedule />} />
+                    <Route path="mail" element={<MailCenter />} />
+                    <Route path="content" element={<ContentStudio />} />
+                    <Route path="activity" element={<Activity />} />
+                    <Route path="*" element={<NotFound />} />
+                  </Routes>
+                </Suspense>
+              </Layout>
+            </ProtectedRoute>
+          } 
+        />
+
+        {/* Catch-all 404 */}
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </BrowserRouter>
   );
-}
+};
 
 export default App;

@@ -1,14 +1,17 @@
+import { useState } from 'react';
 import CommandBar from './CommandBar';
 import Sidebar from './Sidebar';
 
-const Layout = ({ children, activeTab, setActiveTab }) => {
+const Layout = ({ children }) => {
+    const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+
     return (
-        <div className="flex h-screen bg-background text-text-primary overflow-hidden font-sans">
+        <div className="flex h-screen bg-black bg-light-streaks text-text-primary overflow-hidden font-sans">
             {/* Fixed Sidebar */}
-            <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
+            <Sidebar isOpen={isSidebarOpen} toggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} />
 
             {/* Main Content Area */}
-            <div className="flex-1 flex flex-col relative overflow-hidden">
+            <div className="flex-1 flex flex-col relative overflow-hidden transition-all duration-300 ease-in-out">
                 {/* Fixed Top Command Bar */}
                 <CommandBar />
 

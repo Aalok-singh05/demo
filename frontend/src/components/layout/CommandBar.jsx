@@ -46,7 +46,7 @@ const CommandBar = () => {
 
     return (
         <>
-            <header className="h-16 border-b border-gray-800 bg-card/50 backdrop-blur-sm flex items-center justify-between px-6 sticky top-0 z-10">
+            <header className="h-16 border-b border-white/10 glass-card !rounded-none !shadow-none !border-x-0 !border-t-0 flex items-center justify-between px-6 sticky top-0 z-10 w-full">
                 <form onSubmit={handleSubmit} className="flex-1 max-w-2xl relative">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                         {loading ? <Loader2 size={18} className="text-primary animate-spin" /> : <Search size={18} className="text-gray-500" />}
@@ -58,7 +58,7 @@ const CommandBar = () => {
                         onChange={e => setInput(e.target.value)}
                         onKeyDown={handleKeyDown}
                         placeholder="Command Nexus (e.g. 'Add a surprise keynote by the CEO to Day 2')"
-                        className="w-full bg-background border border-gray-700 rounded-lg pl-10 pr-20 py-2 text-sm text-text-primary focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all placeholder-gray-500"
+                        className="w-full bg-black/40 border border-white/10 rounded-lg pl-10 pr-20 py-2 text-sm text-text-primary focus:outline-none focus:border-white/30 focus:ring-1 focus:ring-white/30 transition-all placeholder-gray-500"
                     />
                     <div className="absolute inset-y-0 right-0 pr-3 flex items-center gap-2">
                         {input.trim() && (
@@ -75,7 +75,7 @@ const CommandBar = () => {
                         <Bell size={20} />
                         <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-error rounded-full animate-pulse"></span>
                     </button>
-                    <div className="flex items-center space-x-3 pl-4 border-l border-gray-800">
+                    <div className="flex items-center space-x-3 pl-4 border-l border-white/10">
                         <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold border border-primary/30">
                             YO
                         </div>

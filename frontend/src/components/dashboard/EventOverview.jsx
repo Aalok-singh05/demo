@@ -32,7 +32,7 @@ const EventOverview = () => {
     ];
 
     return (
-        <div className="bg-card border border-gray-800 rounded-xl p-6 shadow-sm">
+        <div className="glass-card p-6 shadow-sm">
             <div className="flex justify-between items-start mb-6">
                 <div>
                     <h3 className="text-xl font-bold text-white mb-1">{data.name}</h3>
@@ -48,10 +48,10 @@ const EventOverview = () => {
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {stats.map((s) => (
-                    <div key={s.label} className="p-4 bg-background rounded-lg border border-gray-800 hover:border-gray-700 transition-colors">
+                    <div key={s.label} className="p-4 bg-black/40 rounded-lg border border-white/10 hover:border-white/20 transition-colors shadow-inner">
                         <div className="text-text-secondary text-xs font-semibold uppercase tracking-wider mb-2">{s.label}</div>
                         <div className="text-2xl font-bold text-white flex items-end">
-                            {loading ? <span className="animate-pulse bg-gray-700 rounded w-12 h-8 inline-block" /> : s.value}
+                            {loading ? <span className="animate-pulse bg-white/10 rounded w-12 h-8 inline-block" /> : s.value}
                             <span className="text-sm text-gray-500 font-normal ml-2">{s.sub}</span>
                         </div>
                     </div>

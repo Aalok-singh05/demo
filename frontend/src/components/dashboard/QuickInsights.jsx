@@ -32,8 +32,8 @@ const QuickInsights = () => {
     ];
 
     return (
-        <div className="bg-card border border-gray-800 rounded-xl shadow-sm h-full flex flex-col">
-            <div className="p-5 border-b border-gray-800 flex justify-between items-center">
+        <div className="glass-card shadow-sm h-full flex flex-col">
+            <div className="p-5 border-b border-white/10 flex justify-between items-center bg-black/20 rounded-t-xl">
                 <h3 className="font-semibold text-white flex items-center">
                     <span className="text-agents-athena mr-2">📊</span> Athena Insights
                 </h3>
@@ -54,7 +54,7 @@ const QuickInsights = () => {
                         const c = colorMap[item.type] || colorMap.info;
                         const Icon = iconMap[item.type] || TrendingUp;
                         return (
-                            <div key={item.id} className={`p-4 rounded-lg border ${c.bg} flex gap-4 transition-all hover:-translate-y-0.5`}>
+                            <div key={item.id} className={`p-4 rounded-lg border ${c.bg} flex gap-4 transition-all hover:-translate-y-0.5 bg-black/40`}>
                                 <div className={`mt-0.5 ${c.color}`}>
                                     <Icon size={18} />
                                 </div>
@@ -62,7 +62,7 @@ const QuickInsights = () => {
                                     <h4 className={`text-sm font-semibold mb-1 ${c.color}`}>{item.title}</h4>
                                     <p className="text-sm text-gray-300 mb-3">{item.desc}</p>
                                     {item.action && (
-                                        <button className="text-xs font-medium bg-[#1e293b] hover:bg-gray-700 text-white px-3 py-1.5 rounded transition-colors border border-gray-600">
+                                        <button className="text-xs font-medium bg-black/50 hover:bg-white/10 text-white px-3 py-1.5 rounded transition-colors border border-white/20">
                                             {item.action}
                                         </button>
                                     )}

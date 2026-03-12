@@ -38,12 +38,12 @@ const PendingApprovals = () => {
   const items = !loading && approvals.length === 0 ? [] : approvals;
 
   return (
-    <div className="bg-card border border-gray-800 rounded-xl shadow-sm">
-      <div className="p-5 border-b border-gray-800 flex justify-between items-center bg-gray-900/40 rounded-t-xl">
+    <div className="glass-card shadow-sm">
+      <div className="p-5 border-b border-white/10 flex justify-between items-center bg-black/20 rounded-t-xl">
         <h3 className="font-semibold text-white flex items-center">
           <span className="bg-error w-2 h-2 rounded-full mr-2"></span>
           Pending Approvals
-          <span className="ml-2 bg-gray-800 text-gray-300 text-xs px-2 py-0.5 rounded-full">{items.length}</span>
+          <span className="ml-2 bg-white/10 text-gray-300 text-xs px-2 py-0.5 rounded-full">{items.length}</span>
         </h3>
       </div>
       
@@ -63,7 +63,7 @@ const PendingApprovals = () => {
             {items.map((item) => {
               const colors = agentColorMap[item.agent] || { color: 'text-gray-400', bg: 'bg-gray-800' };
               return (
-                <div key={item.id} className="border border-gray-800 rounded-lg p-4 bg-background transition-colors hover:border-gray-700">
+                <div key={item.id} className="border border-white/10 rounded-lg p-4 bg-black/40 transition-colors hover:border-white/20">
                   <div className="flex justify-between items-start mb-3">
                     <div className="flex items-center">
                       <div className={`p-2 rounded mr-3 ${colors.bg} ${colors.color}`}>
@@ -76,7 +76,7 @@ const PendingApprovals = () => {
                     </div>
                   </div>
                   
-                  <div className="bg-[#1e293b]/50 p-3 rounded-md mb-4 border border-gray-800">
+                  <div className="bg-black/30 p-3 rounded-md mb-4 border border-white/10">
                     <p className="text-sm text-gray-300 font-serif italic text-ellipsis overflow-hidden whitespace-nowrap">
                       "{item.preview}"
                     </p>
