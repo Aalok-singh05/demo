@@ -1,0 +1,10 @@
+Name,Email,Role,Track,Organization,Phone
+John Doe,john.doe@example.com,attendee,AI Track,TechCorp,555-0101
+Jane Smith,jane.smith@example.com,speaker,Web Dev,DesignStudio,555-0102
+Bob Johnson,bob.j@example.com,attendee,AI Track,University of AI,555-0103
+Alice Williams,alice.w@example.com,volunteer,General,,555-0104
+Charlie Brown,charlie.b@example.com,attendee,Web Dev,TechCorp,
+Eve Davis,eve.d@example.com,speaker,AI Track,Startup Inc,555-0106
+Invalid User,not_an_email,attendee,General,,
+Missing Email User,,attendee,General,,
+Duplicate John,john.doe@example.com,attendee,Web Dev,TechCorp,555-0101
