@@ -6,6 +6,8 @@ import NotFound from './pages/NotFound';
 import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
 import ProtectedRoute from './components/layout/ProtectedRoute';
+import NewEvent from './pages/newEvent';
+import PastEvents from './pages/pastEvents';
 
 // Lazy loaded pages
 const Dashboard = lazy(() => import('./pages/Dashboard'));
@@ -35,6 +37,8 @@ const App = () => {
                     <Route path="mail" element={<MailCenter />} />
                     <Route path="content" element={<ContentStudio />} />
                     <Route path="activity" element={<Activity />} />
+                    <Route path="newEvent" element={<NewEvent />} />
+                    <Route path="pastEvents" element={<PastEvents />} />
                     <Route path="*" element={<NotFound />} />
                   </Routes>
                 </Suspense>

@@ -1,17 +1,32 @@
 import { useState, useEffect } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { Calendar, LayoutDashboard, Mail, MessageSquare, Settings, Activity, ChevronLeft, Menu, LogOut } from 'lucide-react';
+import { 
+  Calendar, 
+  LayoutDashboard, 
+  Activity, 
+  ChevronLeft, 
+  Menu, 
+  LogOut, 
+  Settings 
+} from 'lucide-react';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faPlus } from '@fortawesome/free-solid-svg-icons';
 import { getAgentStatus } from '../../services/api';
 
 const Sidebar = ({ isOpen, toggleSidebar }) => {
     const navigate = useNavigate();
 
+    // To keep consistency with Lucide's API, we wrap FA in a component
+    const FaPlusIcon = ({ size }) => (
+        <FontAwesomeIcon icon={faPlus} style={{ fontSize: size }} />
+    );
+
     const navItems = [
         { path: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+        { path: '/dashboard/newEvent', icon: FaPlusIcon, label: 'New Event' },
         { path: '/dashboard/schedule', icon: Calendar, label: 'Schedule' },
-        { path: '/dashboard/mail', icon: Mail, label: 'Mail Center' },
-        { path: '/dashboard/content', icon: MessageSquare, label: 'Content Studio' },
         { path: '/dashboard/activity', icon: Activity, label: 'Agent Activity' },
+        { path: '/dashboard/pastEvents', icon: Calendar, label: 'Past Events'}
     ];
 
     const handleLogout = () => {
@@ -20,12 +35,12 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
     };
 
     const [agentStatus, setAgentStatus] = useState([
-        { name: 'Chronos', role: 'Scheduler', status: 'Idle', color: 'text-agents-chronos', indicator: 'bg-agents-chronos opacity-50' },
-        { name: 'Hermes', role: 'Mailer', status: 'Idle', color: 'text-agents-hermes', indicator: 'bg-agents-hermes opacity-50' },
-        { name: 'Apollo', role: 'Content', status: 'Idle', color: 'text-agents-apollo', indicator: 'bg-agents-apollo opacity-50' },
-        { name: 'Athena', role: 'Analytics', status: 'Idle', color: 'text-agents-athena', indicator: 'bg-agents-athena opacity-50' },
-        { name: 'Nexus Core', role: 'Coordinator', status: 'Idle', color: 'text-primary', indicator: 'bg-primary opacity-50' },
-        { name: 'Fortuna', role: 'Budget', status: 'Idle', color: 'text-warning', indicator: 'bg-warning opacity-50' },
+        { name: 'Chronos', role: 'Scheduler', status: 'Idle', color: 'text-blue-400', glow: 'shadow-blue-500/50' },
+        { name: 'Hermes', role: 'Mailer', status: 'Idle', color: 'text-purple-400', glow: 'shadow-purple-500/50' },
+        { name: 'Apollo', role: 'Content', status: 'Idle', color: 'text-orange-400', glow: 'shadow-orange-500/50' },
+        { name: 'Athena', role: 'Analytics', status: 'Idle', color: 'text-emerald-400', glow: 'shadow-emerald-500/50' },
+        { name: 'Nexus Core', role: 'Coordinator', status: 'Idle', color: 'text-primary', glow: 'shadow-primary/50' },
+        { name: 'Fortuna', role: 'Budget', status: 'Idle', color: 'text-warning', glow: 'shadow-warning/50' },
     ]);
 
     useEffect(() => {
@@ -33,93 +48,91 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
             getAgentStatus()
                 .then(data => {
                     setAgentStatus(data.map(a => {
-                        const colorMap = {
-                            Chronos: 'text-agents-chronos',
-                            Hermes: 'text-agents-hermes',
-                            Apollo: 'text-agents-apollo',
-                            Athena: 'text-agents-athena',
-                            'Nexus Core': 'text-primary',
-                            Fortuna: 'text-warning',
+                        const themeMap = {
+                            Chronos: { color: 'text-blue-400', glow: 'shadow-blue-500/50', bg: 'bg-blue-400' },
+                            Hermes: { color: 'text-purple-400', glow: 'shadow-purple-500/50', bg: 'bg-purple-400' },
+                            Apollo: { color: 'text-orange-400', glow: 'shadow-orange-500/50', bg: 'bg-orange-400' },
+                            Athena: { color: 'text-emerald-400', glow: 'shadow-emerald-500/50', bg: 'bg-emerald-400' },
+                            'Nexus Core': { color: 'text-primary', glow: 'shadow-primary/50', bg: 'bg-primary' },
+                            Fortuna: { color: 'text-warning', glow: 'shadow-warning/50', bg: 'bg-warning' },
                         };
-                        const indicatorMap = {
-                            working: `animate-pulse ${(colorMap[a.name] || 'text-gray-400').replace('text-', 'bg-')}`,
-                            idle: `${(colorMap[a.name] || 'text-gray-400').replace('text-', 'bg-')} opacity-50`,
-                            observing: `${(colorMap[a.name] || 'text-gray-400').replace('text-', 'bg-')} opacity-80`,
-                            planning: `animate-pulse ${(colorMap[a.name] || 'text-gray-400').replace('text-', 'bg-')}`,
+
+                        const theme = themeMap[a.name] || { color: 'text-gray-400', glow: 'shadow-gray-500/50', bg: 'bg-gray-400' };
+                        
+                        const stateStyles = {
+                            working: `animate-pulse ${theme.bg} shadow-[0_0_8px_rgba(255,255,255,0.8)]`,
+                            idle: `${theme.bg} opacity-40`,
+                            observing: `${theme.bg} opacity-100 shadow-lg`,
+                            planning: `animate-bounce ${theme.bg} scale-110`,
                         };
-                        const statusLabels = {
-                            working: 'Working...',
-                            idle: 'Idle',
-                            observing: 'Observing',
-                            planning: 'Planning...',
-                        };
+
                         return {
-                            name: a.name,
-                            role: a.role,
-                            status: statusLabels[a.status] || a.status,
-                            color: colorMap[a.name] || 'text-gray-400',
-                            indicator: indicatorMap[a.status] || indicatorMap.idle,
+                            ...a,
+                            statusLabel: a.status.charAt(0).toUpperCase() + a.status.slice(1),
+                            color: theme.color,
+                            indicator: stateStyles[a.status] || stateStyles.idle
                         };
                     }));
                 })
-                .catch(() => {}); // Keep fallback
+                .catch(() => {});
         };
         fetchStatus();
-        const interval = setInterval(fetchStatus, 5000); // Poll every 5s
+        const interval = setInterval(fetchStatus, 5000);
         return () => clearInterval(interval);
     }, []);
 
     return (
-        <aside className={`border-r border-white/10 glass-card !rounded-none !shadow-none !border-y-0 !border-l-0 h-full flex flex-col transition-all duration-300 ease-in-out ${isOpen ? 'w-64' : 'w-[60px]'}`}>
-            <div className={`p-6 flex items-center ${isOpen ? 'justify-between' : 'justify-center'} h-20`}>
-                <div className={`overflow-hidden transition-opacity duration-300 ${isOpen ? 'opacity-100 flex-1' : 'opacity-0 w-0 flex-none'}`}>
-                    <h1 className="text-2xl font-bold text-primary tracking-wider whitespace-nowrap">NEXUS</h1>
-                    <p className="text-[10px] text-text-secondary mt-1 tracking-widest uppercase whitespace-nowrap">Command</p>
-                </div>
+        <aside className={`border-r border-white/10 bg-white/[0.02] backdrop-blur-xl h-full flex flex-col transition-all duration-300 ease-in-out z-50 ${isOpen ? 'w-64' : 'w-[70px]'}`}>
+            {/* Header / Logo */}
+            <div className={`p-6 flex items-center ${isOpen ? 'justify-between' : 'justify-center'} h-24`}>
+                {isOpen && (
+                    <div className="flex flex-col">
+                        <h1 className="text-2xl font-black text-white tracking-tighter">NEXUS</h1>
+                        <p className="text-[10px] text-primary font-bold tracking-[0.3em] uppercase opacity-80">Command</p>
+                    </div>
+                )}
                 <button 
                     onClick={toggleSidebar} 
-                    className={`text-text-secondary hover:text-white p-1 rounded-md hover:bg-gray-800 transition-colors flex-shrink-0`}
-                    title={isOpen ? "Collapse Sidebar" : "Expand Sidebar"}
+                    className="text-slate-400 hover:text-white p-2 rounded-xl hover:bg-white/5 transition-all"
                 >
                     {isOpen ? <ChevronLeft size={20} /> : <Menu size={20} />}
                 </button>
             </div>
 
-            <nav className="flex-1 px-3 space-y-2 mt-2 overflow-y-auto overflow-x-hidden">
+            {/* Navigation */}
+            <nav className="flex-1 px-3 space-y-2 mt-2">
                 {navItems.map((item) => {
                     const Icon = item.icon;
                     return (
                         <NavLink
                             key={item.path}
                             to={item.path}
-                            title={!isOpen ? item.label : undefined}
-                            className={({ isActive }) => `flex items-center space-x-3 py-3 rounded-lg transition-colors ${isActive
-                                    ? 'bg-primary/10 text-primary'
-                                    : 'text-text-secondary hover:bg-gray-800/50 hover:text-white'
-                                } ${isOpen ? 'px-4 w-full' : 'px-0 justify-center w-full'}`}
+                            className={({ isActive }) => `flex items-center rounded-xl transition-all duration-200 group ${
+                                isActive 
+                                ? 'bg-primary/10 text-primary border border-primary/20 shadow-[0_0_15px_-5px_rgba(var(--primary-rgb),0.4)]' 
+                                : 'text-slate-400 hover:bg-white/5 hover:text-white'
+                            } ${isOpen ? 'px-4 py-3 space-x-4' : 'px-0 py-4 justify-center'}`}
                         >
-                            <Icon size={20} className="flex-shrink-0" />
-                            <span className={`font-medium whitespace-nowrap overflow-hidden transition-all duration-300 ${isOpen ? 'opacity-100 w-auto' : 'opacity-0 w-0 hidden'}`}>
-                                {item.label}
-                            </span>
+                            <Icon size={20} className="transition-transform group-hover:scale-110" />
+                            {isOpen && <span className="font-semibold text-sm">{item.label}</span>}
                         </NavLink>
                     );
                 })}
             </nav>
 
-            {/* Agent Status Sidebar Section */}
-            <div className={`p-4 border-t border-white/10 transition-all duration-300 ${!isOpen ? 'px-2' : ''}`}>
-                <h3 className={`text-xs font-semibold text-text-secondary uppercase tracking-wider mb-4 transition-all duration-300 ${isOpen ? 'px-2' : 'hidden'}`}>
+            {/* Agent Status Section */}
+            <div className={`p-4 mx-3 mb-4 rounded-2xl bg-white/[0.03] border border-white/[0.05] transition-all ${!isOpen ? 'opacity-0 h-0 p-0 overflow-hidden' : 'opacity-100'}`}>
+                <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4 px-1">
                     Swarm Status
                 </h3>
-                <div className="space-y-3 px-1">
+                <div className="space-y-4">
                     {agentStatus.map(agent => (
-                        <div key={agent.name} className={`flex items-center ${isOpen ? 'justify-between' : 'justify-center'}`} title={!isOpen ? `${agent.name}: ${agent.status}` : undefined}>
+                        <div key={agent.name} className="flex items-center justify-between">
                             <div className="flex items-center space-x-3">
-                                <div className={`w-2 h-2 rounded-full ${agent.indicator} flex-shrink-0`} />
-                                <div className={`overflow-hidden transition-all duration-300 ${isOpen ? 'opacity-100 w-auto' : 'opacity-0 w-0 hidden'}`}>
-                                    <div className={`text-sm font-medium ${agent.color} whitespace-nowrap`}>{agent.name}</div>
-                                    <div className="text-xs text-gray-500 whitespace-nowrap">{agent.status}</div>
+                                <div className={`w-2 h-2 rounded-full ${agent.indicator} transition-all duration-500`} />
+                                <div className="flex flex-col">
+                                    <span className={`text-xs font-bold ${agent.color}`}>{agent.name}</span>
+                                    <span className="text-[10px] text-slate-500 leading-none">{agent.statusLabel || agent.status}</span>
                                 </div>
                             </div>
                         </div>
@@ -127,25 +140,18 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
                 </div>
             </div>
 
-            <div className={`p-4 transition-all duration-300 space-y-2 ${!isOpen ? 'px-2' : ''}`}>
-                <button 
-                    className={`flex items-center space-x-3 py-3 text-text-secondary hover:text-white hover:bg-gray-800/50 rounded-lg transition-colors w-full ${isOpen ? 'px-4' : 'px-0 justify-center'}`}
-                    title={!isOpen ? "Settings" : undefined}
-                >
-                    <Settings size={20} className="flex-shrink-0" />
-                    <span className={`font-medium whitespace-nowrap overflow-hidden transition-all duration-300 ${isOpen ? 'opacity-100 w-auto' : 'opacity-0 w-0 hidden'}`}>
-                        Settings
-                    </span>
+            {/* Bottom Actions */}
+            <div className="p-4 border-t border-white/10 space-y-2">
+                <button className={`flex items-center text-slate-400 hover:text-white hover:bg-white/5 rounded-xl transition-all w-full ${isOpen ? 'px-4 py-3 space-x-4' : 'py-4 justify-center'}`}>
+                    <Settings size={20} />
+                    {isOpen && <span className="text-sm font-medium">Settings</span>}
                 </button>
                 <button 
                     onClick={handleLogout}
-                    className={`flex items-center space-x-3 py-3 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition-colors w-full ${isOpen ? 'px-4' : 'px-0 justify-center'}`}
-                    title={!isOpen ? "System Logout" : undefined}
+                    className={`flex items-center text-red-400/80 hover:text-red-400 hover:bg-red-400/10 rounded-xl transition-all w-full ${isOpen ? 'px-4 py-3 space-x-4' : 'py-4 justify-center'}`}
                 >
-                    <LogOut size={20} className="flex-shrink-0" />
-                    <span className={`font-medium whitespace-nowrap overflow-hidden transition-all duration-300 ${isOpen ? 'opacity-100 w-auto' : 'opacity-0 w-0 hidden'}`}>
-                        System Logout
-                    </span>
+                    <LogOut size={20} />
+                    {isOpen && <span className="text-sm font-medium">Logout</span>}
                 </button>
             </div>
         </aside>
