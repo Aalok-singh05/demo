@@ -97,7 +97,7 @@ const LandingPage = () => {
               { label: "Active AI Agents", value: "6+" },
               { label: "Tasks Automated", value: "100%" },
               { label: "Uptime Guaranteed", value: "99.9%" },
-              { label: "System Latency", value: "1s" },
+              { label: "System Latency", value: "<1s" },
             ].map((stat, i) => (
               <div key={i} className="text-center">
                 <div className="text-3xl md:text-4xl font-bold tracking-tight text-white mb-2">
@@ -113,7 +113,7 @@ const LandingPage = () => {
       </section>
 
       {/* ---------------- FEATURES ---------------- */}
-
+{/* 
       <section className="py-24 px-6 relative z-10">
         <div className="max-w-7xl mx-auto flex flex-col items-center">
 
@@ -176,7 +176,83 @@ const LandingPage = () => {
             ))}
           </div>
         </div>
-      </section>
+      </section> */}
+
+      <section className="py-24 px-6 relative z-10 bg-[#020202]"> 
+  <div className="max-w-7xl mx-auto flex flex-col items-center">
+    <h2 className="text-3xl md:text-4xl font-bold text-white mb-16 text-center tracking-tight">
+      Meet Your Autonomous Swarm
+    </h2>
+
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-8 w-full">
+      {[
+        {
+          title: "Chronos",
+          role: "Scheduler",
+          icon: CalendarDays,
+          color: "text-blue-400",
+          glow: "group-hover:shadow-[0_0_40px_-10px_rgba(59,130,246,0.5)]",
+          flare: "from-blue-500/20",
+          desc: "Intelligent conflict resolution and automated itinerary generation.",
+        },
+        {
+          title: "Hermes",
+          role: "Communications",
+          icon: Mail,
+          color: "text-purple-400",
+          glow: "group-hover:shadow-[0_0_40px_-10px_rgba(168,85,247,0.5)]",
+          flare: "from-purple-500/20",
+          desc: "Context-aware email delivery and instant stakeholder updates.",
+        },
+        {
+          title: "Athena",
+          role: "Analytics",
+          icon: Activity,
+          color: "text-emerald-400",
+          glow: "group-hover:shadow-[0_0_40px_-10px_rgba(16,185,129,0.5)]",
+          flare: "from-emerald-500/20",
+          desc: "Real-time insights and predictive attendance modeling.",
+        },
+      ].map((agent, i) => (
+        <div
+          key={i}
+          className={`group relative p-8 rounded-2xl transition-all duration-500 
+            hover:-translate-y-3 cursor-default
+            bg-gradient-to-br from-white/[0.08] to-transparent
+            backdrop-blur-2xl border border-white/[0.1]
+            hover:border-white/[0.2] ${agent.glow} overflow-hidden`}
+        >
+          {/* THE GLOW FLARE: A hidden radial gradient that activates on hover */}
+          <div className={`absolute -inset-px bg-gradient-to-br ${agent.flare} to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 -z-10`} />
+
+          {/* Icon Container with its own inner glow */}
+          <div
+            className={`w-14 h-14 rounded-xl flex items-center justify-center mb-6 
+              bg-white/[0.05] border border-white/[0.1] 
+              group-hover:scale-110 transition-transform duration-500`}
+          >
+            <agent.icon className={`w-7 h-7 ${agent.color} filter drop-shadow-[0_0_8px_rgba(255,255,255,0.3)]`} />
+          </div>
+
+          <h3 className="text-2xl font-bold text-white mb-2">
+            {agent.title}
+          </h3>
+
+          <div className={`text-xs font-black ${agent.color} uppercase tracking-[0.2em] mb-4`}>
+            {agent.role}
+          </div>
+
+          <p className="text-slate-300/80 leading-relaxed font-light text-[15px]">
+            {agent.desc}
+          </p>
+
+          {/* Decorative Corner Light */}
+          <div className="absolute top-0 right-0 w-24 h-24 bg-white/[0.02] blur-2xl pointer-events-none" />
+        </div>
+      ))}
+    </div>
+  </div>
+</section>
 
       {/* ---------------- FOOTER ---------------- */}
 
