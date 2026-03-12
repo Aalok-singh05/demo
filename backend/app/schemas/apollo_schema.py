@@ -25,6 +25,10 @@ class ContentPiece(BaseModel):
     text: str
     suggested_time: str
 
+    # NEW
+    image_prompt: Optional[str] = None
+    image_url: Optional[str] = None
+
 
 class ContentResult(BaseModel):
 

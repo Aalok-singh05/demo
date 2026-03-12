@@ -148,3 +148,4 @@ wheel==0.45.1
 wrapt==2.0.1
 xxhash==3.6.0
 zstandard==0.25.0
+replicate
