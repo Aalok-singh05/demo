@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Nexus Backend — Agent Activity Tester</title>
+    <style>
+        body { font-family: 'Courier New', monospace; background: #0f172a; color: #38bdf8; margin: 0; padding: 20px; }
+        h2 { color: #f8fafc; border-bottom: 1px solid #334155; padding-bottom: 10px; }
+        #log { height: 75vh; overflow-y: scroll; background: #1e293b; padding: 15px; border-radius: 8px; border: 1px solid #475569; }
+        .msg { margin: 5px 0; padding: 8px; border-radius: 4px; }
+        .msg-type { font-weight: bold; color: #f472b6; margin-right: 10px;}
+        .status-idle { color: #94a3b8; }
+        .status-working { color: #fbbf24; }
+        .status-done { color: #4ade80; }
+        .status-error { color: #f87171; }
+        .json { color: #93c5fd; font-size: 0.85em; }
+    </style>
+</head>
+<body>
+    <h2>🔌 Nexus Real-Time Agent Stream</h2>
+    <div style="color: #cbd5e1; margin-bottom: 20px;">
+        1. Keep this window open.<br>
+        2. Go to <b>http://localhost:8000/docs</b> and use `POST /api/agents/invoke`.<br>
+        3. Watch the multi-agent system stream its internal state below.
+    </div>
+    
+    <div id="log"></div>
+
+    <script>
+        const ws = new WebSocket("ws://localhost:8000/ws/stream");
+        const log = document.getElementById("log");
+
+        function addLog(type, content, cssClass="") {
+            const div = document.createElement("div");
+            div.className = `msg ${cssClass}`;
+            div.innerHTML = `<span class="msg-type">[${type}]</span> ${content}`;
+            log.appendChild(div);
+            // Scroll to bottom
+            log.scrollTop = log.scrollHeight;
+        }
+
+        ws.onopen = () => addLog("SYSTEM", "WebSocket connected. Waiting for agent activity...", "status-done");
+        ws.onclose = () => addLog("SYSTEM", "WebSocket disconnected. Is the FastAPI server running?", "status-error");
+        
+        ws.onmessage = (event) => {
+            const msg = JSON.parse(event.data);
+            
+            if (msg.type === "agent_status") {
+                const color = `status-${msg.data.status}`;
+                addLog("STATUS", `Agent <b>${msg.data.agent.toUpperCase()}</b> changed to <span class="${color}">${msg.data.status}</span>. Task: ${msg.data.task}`, color);
+            } 
+            else if (msg.type === "agent_message") {
+                addLog("MESSAGE", `<b>${msg.data.from.toUpperCase()}</b> says to <b>${msg.data.to.toUpperCase()}</b>: "${msg.data.content}"`, "status-working");
+            }
+            else if (msg.type === "agent_complete") {
+                addLog("DONE", `<b>${msg.data.agent.toUpperCase()}</b> finished. <br><span class="json">${JSON.stringify(msg.data.result, null, 2)}</span>`, "status-done");
+            }
+            else if (msg.type === "approval_request") {
+                addLog("APPROVAL", `HUMAN REVIEW REQUIRED for ${msg.data.items.length} items. (Check the /api/approvals endpoint)`, "status-working");
+            }
+            else if (msg.type === "system_event") {
+                addLog("EVENT", `Event triggered: <b>${msg.data.event_type}</b>`, "status-idle");
+            }
+            else {
+                addLog(msg.type.toUpperCase(), JSON.stringify(msg.data), "status-idle");
+            }
+        };
+    </script>
+</body>
+</html>

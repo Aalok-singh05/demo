@@ -126,24 +126,35 @@ class EventDispatcher:
             "type": "system_event",
             "data": {
                 "event_type": event_type,
-                "primary_agent": primary["agent"],
+                "triggered_agents": [t["agent"] for t in agent_targets],
                 "total_agents": len(agent_targets),
             }
         })
 
-        # Build the orchestrator request
-        # Primary agent runs first; secondary agents are added as pending tasks
+        # Build the orchestrator requests for ALL mapped agents
+        import asyncio
         from app.agents.orchestrator import run_orchestrator
-        result = await run_orchestrator(
-            user_input=f"[EVENT: {event_type}] {primary['task']}",
-            request_type=primary["request_type"],
-            event=state_manager.get_event(),
-            participants=state_manager.get_participants(),
-            schedule=state_manager.get_schedule(),
-            content_queue=state_manager.get_content_queue(),
-        )
+        
+        tasks = []
+        for target in agent_targets:
+            # We fire an orchestrator job for each agent simultaneously
+            tasks.append(run_orchestrator(
+                user_input=f"[EVENT: {event_type}] {target['task']}",
+                request_type=target["request_type"],
+                event=state_manager.get_event(),
+                participants=state_manager.get_participants(),
+                schedule=state_manager.get_schedule(),
+                content_queue=state_manager.get_content_queue(),
+            ))
 
-        return result
+        # Wait for all agents to finish their independent workflows
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+        
+        return {
+            "event_type": event_type,
+            "status": "success",
+            "results": [{"agent": t["agent"], "result": str(res)} for t, res in zip(agent_targets, results)]
+        }
 
     def get_handlers(self, event_type: str) -> List[Dict[str, str]]:
         """

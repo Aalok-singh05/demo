@@ -138,6 +138,12 @@ async def upload_participants(file: UploadFile = File(...)):
         "filename": file.filename,
     })
 
+    # ---- Step 8: Trigger Event Dispatcher (Casscades to Agents) ----
+    from app.state.event_dispatcher import event_dispatcher, EventType
+    import asyncio
+    # Fire and forget the orchestrator agent loop so the API returns instantly
+    asyncio.create_task(event_dispatcher.dispatch(EventType.PARTICIPANT_DATA_UPLOADED))
+
     # Clean up the temp file
     try:
         os.remove(file_path)

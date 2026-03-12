@@ -107,11 +107,21 @@ async def resolve_approval(
             detail=f"Invalid decision '{decision}'. Must be one of: {', '.join(valid_decisions)}"
         )
 
+    # Resolve the approval record
+    # First, get the approval so we know which agent this is for
+    from app.database import get_db
+    db = await get_db()
+    cursor = await db.execute("SELECT * FROM approvals WHERE id = ?", (approval_id,))
+    row = await cursor.fetchone()
+    
+    if not row:
+        raise HTTPException(status_code=404, detail=f"Approval {approval_id} not found")
+        
+    approval_record = dict(row)
+
     now = datetime.now().isoformat()
 
     # Update in the database
-    from app.database import get_db
-    db = await get_db()
     await db.execute(
         """UPDATE approvals SET status=?, organizer_notes=?, resolved_at=?
            WHERE id=?""",
@@ -139,8 +149,15 @@ async def resolve_approval(
 
     # If approved, trigger the agent to execute the action
     if decision == "approve":
-        # TODO: Re-enter the LangGraph graph to execute the approved action
-        pass
+        from app.state.event_dispatcher import event_dispatcher, EventType
+        import asyncio
+        
+        agent_name = approval_record.get("agent", "")
+        if agent_name == "hermes":
+            asyncio.create_task(event_dispatcher.dispatch(EventType.EMAIL_APPROVED, data={"approval_id": approval_id}))
+        elif agent_name == "apollo":
+            asyncio.create_task(event_dispatcher.dispatch(EventType.CONTENT_APPROVED, data={"approval_id": approval_id}))
+        # Chronos schedule finalization could go here as well if required
 
     return {
         "status": "success",

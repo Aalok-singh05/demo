@@ -374,12 +374,30 @@ async def evaluate_and_cascade(state: NexusState) -> dict:
     for output_key in ["scheduler_output", "mailer_output", "content_output"]:
         output = state.get(output_key)
         if output and output.get("requires_approval"):
+            approval_items = output.get("approval_items", [])
+            
+            # Persist each approval item to the database and state manager
+            event = state_manager.get_event()
+            event_id = event.get("id", "default") if event else "default"
+            from app.repository import insert_approval
+            import asyncio
+            
+            # Fire all DB inserts concurrently
+            insert_tasks = []
+            for item in approval_items:
+                item["event_id"] = event_id
+                state_manager.add_approval(item)
+                insert_tasks.append(insert_approval(event_id, item))
+                
+            if insert_tasks:
+                await asyncio.gather(*insert_tasks)
+
             # Send approval request to frontend
-            await ws_manager.send_approval_request(output.get("approval_items", []))
+            await ws_manager.send_approval_request(approval_items)
             return {
                 "pending_tasks": pending,
                 "requires_approval": True,
-                "approval_items": output.get("approval_items", []),
+                "approval_items": approval_items,
             }
 
     # Safety: prevent infinite loops (max 10 iterations)
