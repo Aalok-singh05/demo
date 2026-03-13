@@ -11,18 +11,24 @@ def format_time(time_obj):
 
 def apply_constraints(schedule, constraints):
     """
-    Enforce scheduling constraints on an already generated schedule.
+    Apply constraint rules to the schedule.
+
+    Returns:
+        updated_schedule
+        warnings
     """
 
+    warnings = []
+
     if not constraints:
-        return schedule
+        return schedule, warnings
 
     for rule in constraints:
 
         rule_type = rule.get("type")
 
         # -----------------------------
-        # START AFTER CONSTRAINT
+        # START AFTER
         # -----------------------------
         if rule_type == "start_after":
 
@@ -35,7 +41,6 @@ def apply_constraints(schedule, constraints):
 
                     start = parse_time(session["start_time"])
                     end = parse_time(session["end_time"])
-
                     duration = end - start
 
                     if start < time_limit:
@@ -43,11 +48,15 @@ def apply_constraints(schedule, constraints):
                         new_start = time_limit
                         new_end = new_start + duration
 
+                        warnings.append(
+                            f"Moved {session['title']} to satisfy start_after constraint"
+                        )
+
                         session["start_time"] = format_time(new_start)
                         session["end_time"] = format_time(new_end)
 
         # -----------------------------
-        # START BEFORE CONSTRAINT
+        # START BEFORE
         # -----------------------------
         if rule_type == "start_before":
 
@@ -60,13 +69,16 @@ def apply_constraints(schedule, constraints):
 
                     start = parse_time(session["start_time"])
                     end = parse_time(session["end_time"])
-
                     duration = end - start
 
                     if start > time_limit:
 
                         new_end = time_limit
                         new_start = new_end - duration
+
+                        warnings.append(
+                            f"Moved {session['title']} earlier due to start_before constraint"
+                        )
 
                         session["start_time"] = format_time(new_start)
                         session["end_time"] = format_time(new_end)
@@ -82,7 +94,14 @@ def apply_constraints(schedule, constraints):
             for session in schedule:
 
                 if session["speaker"] == speaker:
-                    session["day"] = target_day
+
+                    if session["day"] != target_day:
+
+                        warnings.append(
+                            f"Moved {session['title']} to Day {target_day}"
+                        )
+
+                        session["day"] = target_day
 
         # -----------------------------
         # CANNOT BE ON DAY
@@ -97,19 +116,31 @@ def apply_constraints(schedule, constraints):
                 if session["speaker"] == speaker:
 
                     if session["day"] == forbidden_day:
+
+                        warnings.append(
+                            f"Moved {session['title']} off Day {forbidden_day}"
+                        )
+
                         session["day"] += 1
 
         # -----------------------------
-        # PREFERRED ROOM
+        # PREFERRED VENUE
         # -----------------------------
-        if rule_type == "preferred_room":
+        if rule_type == "preferred_venue":
 
             speaker = rule.get("speaker")
-            preferred_room = rule.get("room")
+            preferred_venue = rule.get("venue")
 
             for session in schedule:
 
                 if session["speaker"] == speaker:
-                    session["room"] = preferred_room
 
-    return schedule
+                    if session["venue"] != preferred_venue:
+
+                        warnings.append(
+                            f"Assigned {session['title']} to preferred venue {preferred_venue}"
+                        )
+
+                        session["venue"] = preferred_venue
+
+    return schedule, warnings

@@ -1,5 +1,6 @@
 from typing import List, Dict
 from datetime import datetime, timedelta
+from app.schemas.chronos_schema import Resolution
 
 
 def parse_time(time_str: str):
@@ -10,141 +11,183 @@ def format_time(time_obj):
     return time_obj.strftime("%H:%M")
 
 
-def find_next_available_slot(schedule: List[Dict], room: str, day: int, duration_minutes: int):
-    """
-    Finds the next available slot in a given room on a specific day.
-    """
-
-    day_schedule = [
-        s for s in schedule if s["room"] == room and s.get("day") == day
-    ]
-
-    schedule_sorted = sorted(day_schedule, key=lambda x: x["start_time"])
-
-    for session in schedule_sorted:
-
-        end_time = parse_time(session["end_time"])
-
-        new_start = end_time
-        new_end = new_start + timedelta(minutes=duration_minutes)
-
-        conflict = False
-
-        for s in schedule_sorted:
-
-            s_start = parse_time(s["start_time"])
-            s_end = parse_time(s["end_time"])
-
-            if max(new_start, s_start) < min(new_end, s_end):
-                conflict = True
-                break
-
-        if not conflict:
-            return format_time(new_start), format_time(new_end)
-
-    return None, None
+def overlaps(start1, end1, start2, end2):
+    return max(start1, start2) < min(end1, end2)
 
 
-def resolve_conflicts(schedule: List[Dict], conflicts: List[Dict]):
+def venue_available(schedule, venue, day, start, end, ignore_id=None):
+
+    for s in schedule:
+
+        if s["id"] == ignore_id:
+            continue
+
+        if s["day"] != day:
+            continue
+
+        if s["venue"] != venue:
+            continue
+
+        s_start = parse_time(s["start_time"])
+        s_end = parse_time(s["end_time"])
+
+        if overlaps(start, end, s_start, s_end):
+            return False
+
+    return True
+
+
+def speaker_available(schedule, speaker, day, start, end, ignore_id=None):
+
+    if not speaker:
+        return True
+
+    for s in schedule:
+
+        if s["id"] == ignore_id:
+            continue
+
+        if s["day"] != day:
+            continue
+
+        if s.get("speaker") != speaker:
+            continue
+
+        s_start = parse_time(s["start_time"])
+        s_end = parse_time(s["end_time"])
+
+        if overlaps(start, end, s_start, s_end):
+            return False
+
+    return True
+
+
+def resolve_conflicts(
+    schedule: List[Dict],
+    conflicts: List[Dict],
+    venues: List[str],
+    days: int,
+    current_day: int = 1,
+):
 
     resolutions = []
 
-    # detect available rooms
-    rooms = list({s["room"] for s in schedule})
-
     for conflict in conflicts:
 
-        s1_id, s2_id = conflict["sessions"]
+        s1_id, s2_id = conflict.sessions_involved
 
-        s1 = next(s for s in schedule if s["session_id"] == s1_id)
-        s2 = next(s for s in schedule if s["session_id"] == s2_id)
+        s1 = next(s for s in schedule if s["id"] == s1_id)
+        s2 = next(s for s in schedule if s["id"] == s2_id)
 
-        # choose lower priority session to move
+        # Move lower priority session
         if s1.get("priority", 1) <= s2.get("priority", 1):
-            session_to_move = s1
+            move_session = s1
         else:
-            session_to_move = s2
+            move_session = s2
 
         duration = (
-            parse_time(session_to_move["end_time"])
-            - parse_time(session_to_move["start_time"])
-        ).seconds // 60
-
-        original_day = session_to_move.get("day", 1)
-
-        # ---- Strategy 1: same room same day ----
-        new_start, new_end = find_next_available_slot(
-            schedule,
-            session_to_move["room"],
-            original_day,
-            duration
+            parse_time(move_session["end_time"])
+            - parse_time(move_session["start_time"])
         )
 
-        # ---- Strategy 2: different room same day ----
-        if not new_start:
+        original_day = move_session["day"]
+        original_start = parse_time(move_session["start_time"])
 
-            for room in rooms:
+        moved = False
 
-                new_start, new_end = find_next_available_slot(
-                    schedule,
-                    room,
-                    original_day,
-                    duration
-                )
+        # ------------------------------------------------
+        # STRATEGY 1 — move later same venue
+        # ------------------------------------------------
 
-                if new_start:
-                    session_to_move["room"] = room
-                    break
+        new_start = original_start + timedelta(minutes=30)
 
-        # ---- Strategy 3: same room next day ----
-        if not new_start:
+        while new_start.time() < datetime.strptime("18:00", "%H:%M").time():
 
-            next_day = original_day + 1
+            new_end = new_start + duration
 
-            new_start, new_end = find_next_available_slot(
+            if venue_available(
                 schedule,
-                session_to_move["room"],
-                next_day,
-                duration
-            )
+                move_session["venue"],
+                original_day,
+                new_start,
+                new_end,
+                move_session["id"],
+            ) and speaker_available(
+                schedule,
+                move_session.get("speaker"),
+                original_day,
+                new_start,
+                new_end,
+                move_session["id"],
+            ):
 
-            if new_start:
-                session_to_move["day"] = next_day
+                move_session["start_time"] = format_time(new_start)
+                move_session["end_time"] = format_time(new_end)
+                move_session["status"] = "moved"
 
-        # ---- Strategy 4: different room next day ----
-        if not new_start:
+                moved = True
+                break
 
-            next_day = original_day + 1
+            new_start += timedelta(minutes=30)
 
-            for room in rooms:
+        # ------------------------------------------------
+        # STRATEGY 2 — different venue same time
+        # ------------------------------------------------
 
-                new_start, new_end = find_next_available_slot(
-                    schedule,
-                    room,
-                    next_day,
-                    duration
-                )
+        if not moved:
 
-                if new_start:
-                    session_to_move["room"] = room
-                    session_to_move["day"] = next_day
+            start = parse_time(move_session["start_time"])
+            end = parse_time(move_session["end_time"])
+
+            for venue in venues:
+
+                if venue == move_session["venue"]:
+                    continue
+
+                if venue_available(schedule, venue, original_day, start, end):
+
+                    move_session["venue"] = venue
+                    move_session["status"] = "moved"
+
+                    moved = True
                     break
 
-        if new_start:
+        # ------------------------------------------------
+        # STRATEGY 3 — next day
+        # ------------------------------------------------
 
-            old_start = session_to_move["start_time"]
-            old_day = original_day
+        if not moved:
 
-            session_to_move["start_time"] = new_start
-            session_to_move["end_time"] = new_end
+            for day in range(max(original_day, current_day), days + 1):
 
-            resolutions.append({
-                "session_id": session_to_move["session_id"],
-                "old_day": old_day,
-                "new_day": session_to_move["day"],
-                "old_time": old_start,
-                "new_time": new_start,
-                "reason": conflict["type"]
-            })
+                start = datetime.strptime("09:00", "%H:%M")
+                end = start + duration
+
+                for venue in venues:
+
+                    if venue_available(schedule, venue, day, start, end):
+
+                        move_session["venue"] = venue
+                        move_session["day"] = day
+                        move_session["start_time"] = format_time(start)
+                        move_session["end_time"] = format_time(end)
+                        move_session["status"] = "moved"
+
+                        moved = True
+                        break
+
+                if moved:
+                    break
+
+        if moved:
+
+            resolutions.append(
+                Resolution(
+                    conflict_type=conflict.type,
+                    action_taken=f"Moved session {move_session['id']} to {move_session['venue']} on Day {move_session['day']} at {move_session['start_time']}",
+                    sessions_moved=[move_session["id"]],
+                    participants_affected=0,
+                )
+            )
 
     return schedule, resolutions

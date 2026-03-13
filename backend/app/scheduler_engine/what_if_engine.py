@@ -1,9 +1,12 @@
 import copy
-from datetime import datetime, timedelta
+from typing import List, Dict, Any
+from datetime import datetime
+
 from app.scheduler_engine.conflict_detector import detect_conflicts
+from app.scheduler_engine.resolution_engine import resolve_conflicts
 
 
-def parse_time(time_str):
+def parse_time(time_str: str):
     return datetime.strptime(time_str, "%H:%M")
 
 
@@ -11,9 +14,17 @@ def format_time(time_obj):
     return time_obj.strftime("%H:%M")
 
 
-def simulate_change(schedule, session_id, new_start_time):
+# ==========================================================
+# STEP 1 — SIMULATE CHANGE
+# ==========================================================
+
+def simulate_change(
+    schedule: List[Dict],
+    session_id: str,
+    new_start_time: str
+) -> Dict[str, Any]:
     """
-    Simulate moving a session to a new time without modifying the real schedule.
+    Simulate moving a session without modifying the real schedule.
     """
 
     simulated_schedule = copy.deepcopy(schedule)
@@ -22,7 +33,7 @@ def simulate_change(schedule, session_id, new_start_time):
 
     for session in simulated_schedule:
 
-        if session["session_id"] == session_id:
+        if session["id"] == session_id:
 
             start_dt = parse_time(session["start_time"])
             end_dt = parse_time(session["end_time"])
@@ -36,13 +47,62 @@ def simulate_change(schedule, session_id, new_start_time):
             session["end_time"] = format_time(new_end_dt)
 
             moved_session = session
-
             break
 
     conflicts = detect_conflicts(simulated_schedule)
 
     return {
-        "simulated_schedule": simulated_schedule,
+        "status": "simulation_complete",
         "moved_session": moved_session,
-        "conflicts": conflicts
+        "simulated_schedule": simulated_schedule,
+        "conflicts_found": conflicts,
+        "requires_resolution": len(conflicts) > 0
+    }
+
+
+# ==========================================================
+# STEP 2 — RESOLVE SIMULATION
+# ==========================================================
+
+def resolve_simulation(
+    simulated_schedule: List[Dict],
+    conflicts,
+    venues: List[str],
+    days: int,
+    current_day: int = 1
+):
+    """
+    Resolve conflicts generated during simulation.
+    """
+
+    updated_schedule, resolutions = resolve_conflicts(
+        simulated_schedule,
+        conflicts,
+        venues,
+        days,
+        current_day
+    )
+
+    return {
+        "status": "resolution_complete",
+        "updated_schedule": updated_schedule,
+        "resolutions": resolutions
+    }
+
+
+# ==========================================================
+# STEP 3 — APPLY CHANGE (FINAL COMMIT)
+# ==========================================================
+
+def commit_simulation(
+    current_schedule: List[Dict],
+    approved_schedule: List[Dict]
+):
+    """
+    Replace the current schedule with the approved simulated schedule.
+    """
+
+    return {
+        "status": "schedule_updated",
+        "new_schedule": approved_schedule
     }

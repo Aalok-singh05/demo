@@ -1,313 +1,224 @@
-from app.schemas.chronos_schema import ScheduleRequest
-from app.schemas.shared_models import Session, Venue
-from app.agents.chronos_agent import chronos_agent
+from app.schemas.chronos_schema import (
+    ScheduleRequest,
+    Session,
+    Venue,
+    FixedSlot
+)
 
+from app.agents.chronos_agent import chronos_agent, remove_session
+from app.scheduler_engine.schedule_builder import build_schedule
+from app.scheduler_engine.conflict_detector import detect_conflicts
+from app.scheduler_engine.resolution_engine import resolve_conflicts
+from app.scheduler_engine.constraint_parser import parse_constraints
+from app.scheduler_engine.constraint_optimizer import apply_constraints
+from app.scheduler_engine.what_if_engine import simulate_change
+
+
+# ------------------------------------------------
+# UTILITY PRINT FUNCTIONS
+# ------------------------------------------------
 
 def print_section(title):
-    print("\n" + "=" * 60)
+    print("\n" + "=" * 70)
     print(title)
-    print("=" * 60)
+    print("=" * 70)
 
 
-def run_test_case(name, request):
-    print_section(f"TEST: {name}")
+def print_schedule(schedule):
 
-    result = chronos_agent(request)
-
-    print("\n--- GENERATED SCHEDULE ---")
-    for s in result.timeline:
+    for s in schedule:
         print(
-            f"Day {s.day} | {s.start_time} - {s.end_time} | "
-            f"{s.room} | {s.title} ({s.speaker})"
+            f"Day {s['day']} | {s['start_time']} - {s['end_time']} | "
+            f"{s['venue']} | {s['title']} ({s.get('speaker')})"
         )
 
-    print("\n--- CONFLICTS DETECTED ---")
-    print(result.conflicts_found)
 
-    print("\n--- RESOLUTIONS ---")
-    print(result.conflicts_resolved)
+# ------------------------------------------------
+# TEST DATA
+# ------------------------------------------------
 
-    print("\n--- CASCADE TRIGGERS ---")
-    print(result.cascade_to)
+venues = [
+    Venue(name="Hall A", capacity=100),
+    Venue(name="Hall B", capacity=80)
+]
 
-    print("\n--- REASONING ---")
-    print(result.reasoning)
+sessions = [
+    Session(id="S1", title="AI Ethics", speaker="Dr Sharma", duration_minutes=60),
+    Session(id="S2", title="Robotics", speaker="Dr Mehta", duration_minutes=60),
+    Session(id="S3", title="Deep Learning", speaker="Dr Gupta", duration_minutes=60),
+]
 
-    # -----------------------------
-    # WHAT IF SIMULATION OUTPUT
-    # -----------------------------
-
-    if hasattr(result, "simulation") and result.simulation:
-
-        print("\n--- WHAT IF SIMULATION ---")
-
-        sim = result.simulation
-
-        print("\nMoved Session:")
-        print(sim["moved_session"])
-
-        print("\nConflicts After Change:")
-        print(sim["conflicts"])
-
-        print("\nSimulated Schedule:")
-
-        for s in sim["simulated_schedule"]:
-            print(
-                f"Day {s['day']} | {s['start_time']} - {s['end_time']} | "
-                f"{s['room']} | {s['title']} ({s['speaker']})"
-            )
+fixed_slots = [
+    FixedSlot(
+        id="F1",
+        title="Opening Ceremony",
+        venue="Hall A",
+        day=1,
+        start_time="09:00",
+        end_time="10:00"
+    )
+]
 
 
-def main():
+# ------------------------------------------------
+# TEST 1 — SCHEDULE BUILDER
+# ------------------------------------------------
 
-    venues = [
-        Venue(name="Hall A", capacity=100),
-        Venue(name="Hall B", capacity=80),
-    ]
+print_section("TEST 1 — Schedule Builder")
 
-    # -------------------------------------------------
-    # TEST 1 — BASIC SCHEDULE
-    # -------------------------------------------------
+schedule = build_schedule(
+    sessions=sessions,
+    venues=venues,
+    fixed_slots=fixed_slots,
+    days=1
+)
 
-    sessions_basic = [
+print_schedule(schedule)
 
-        Session(
-            session_id="S1",
-            title="AI Ethics",
-            speaker="Dr Sharma",
-            duration_minutes=60,
-            priority=3,
-            day=1
-        ),
 
-        Session(
-            session_id="S2",
-            title="LLM Workshop",
-            speaker="Dr Gupta",
-            duration_minutes=60,
-            priority=2,
-            day=1
-        ),
+# ------------------------------------------------
+# TEST 2 — FORCE A CONFLICT
+# ------------------------------------------------
 
-        Session(
-            session_id="S3",
-            title="Robotics",
-            speaker="Dr Mehta",
-            duration_minutes=60,
-            priority=1,
-            day=2
-        )
-    ]
+print_section("TEST 2 — Conflict Detection")
 
-    request1 = ScheduleRequest(
-        event_name="Basic Schedule",
-        days=3,
-        sessions=sessions_basic,
-        venues=venues,
-        constraints=[]
+# manually create conflict
+schedule.append({
+    "id": "S4",
+    "title": "Conflict Talk",
+    "speaker": "Dr Sharma",
+    "venue": "Hall A",
+    "day": 1,
+    "start_time": "10:00",
+    "end_time": "11:00",
+    "status": "scheduled"
+})
+
+conflicts = detect_conflicts(schedule)
+
+print("Detected Conflicts:")
+for c in conflicts:
+    print(c)
+
+
+# ------------------------------------------------
+# TEST 3 — RESOLUTION ENGINE
+# ------------------------------------------------
+
+print_section("TEST 3 — Conflict Resolution")
+
+venue_names = [v.name for v in venues]
+
+schedule, resolutions = resolve_conflicts(
+    schedule,
+    conflicts,
+    venue_names,
+    days=1
+)
+
+print_schedule(schedule)
+
+print("\nResolutions:")
+for r in resolutions:
+    print(r)
+
+
+# ------------------------------------------------
+# TEST 4 — CONSTRAINT PARSER
+# ------------------------------------------------
+
+print_section("TEST 4 — Constraint Parser")
+
+constraints = [
+    "Dr Sharma only available after 14:00"
+]
+
+parsed = parse_constraints(constraints)
+
+print("Parsed Constraints:")
+print(parsed)
+
+
+# ------------------------------------------------
+# TEST 5 — CONSTRAINT OPTIMIZER
+# ------------------------------------------------
+
+print_section("TEST 5 — Constraint Optimizer")
+
+schedule, warnings = apply_constraints(schedule, parsed)
+
+print_schedule(schedule)
+
+print("\nWarnings:")
+print(warnings)
+
+
+# ------------------------------------------------
+# TEST 6 — WHAT IF SIMULATION
+# ------------------------------------------------
+
+print_section("TEST 6 — What‑If Simulation")
+
+result = simulate_change(schedule, "S1", "11:00")
+
+print("Moved Session:")
+print(result["moved_session"])
+
+print("\nSimulated Schedule:")
+print_schedule(result["simulated_schedule"])
+
+print("\nConflicts from simulation:")
+print(result["conflicts_found"])
+
+
+# ------------------------------------------------
+# TEST 7 — REMOVE SESSION
+# ------------------------------------------------
+
+print_section("TEST 7 — Remove Session")
+
+remove_result = remove_session(schedule, "S2")
+
+print("Removed:", remove_result["removed_session"])
+
+print("\nUpdated Schedule:")
+print_schedule(remove_result["updated_schedule"])
+
+
+# ------------------------------------------------
+# TEST 8 — FULL CHRONOS AGENT
+# ------------------------------------------------
+
+print_section("TEST 8 — Full Chronos Agent Pipeline")
+
+request = ScheduleRequest(
+    event_name="Demo AI Conference",
+    days=1,
+    venues=venues,
+    sessions=sessions,
+    constraints=[
+        "Dr Sharma only available after 13:00"
+    ],
+    fixed_slots=fixed_slots
+)
+
+result = chronos_agent(request)
+
+print("\nFinal Timeline:")
+for s in result.timeline:
+    print(
+        f"Day {s.day} | {s.start_time}-{s.end_time} | "
+        f"{s.venue} | {s.title}"
     )
 
-    run_test_case("Basic Schedule Generation", request1)
+print("\nConflicts Found:")
+print(result.conflicts_found)
 
-    # -------------------------------------------------
-    # TEST 2 — SPEAKER CONFLICT
-    # -------------------------------------------------
+print("\nResolutions:")
+print(result.conflicts_resolved)
 
-    sessions_speaker_conflict = [
+print("\nWarnings:")
+print(result.warnings)
 
-        Session(
-            session_id="S1",
-            title="AI Ethics",
-            speaker="Dr Sharma",
-            duration_minutes=60,
-            priority=3,
-            day=1
-        ),
-
-        Session(
-            session_id="S2",
-            title="Deep Learning",
-            speaker="Dr Sharma",
-            duration_minutes=60,
-            priority=2,
-            day=1
-        )
-    ]
-
-    request2 = ScheduleRequest(
-        event_name="Speaker Conflict",
-        days=2,
-        sessions=sessions_speaker_conflict,
-        venues=[Venue(name="Hall A", capacity=100)],
-        constraints=[]
-    )
-
-    run_test_case("Speaker Conflict Detection", request2)
-
-    # -------------------------------------------------
-    # TEST 3 — ROOM CONFLICT
-    # -------------------------------------------------
-
-    sessions_room_conflict = [
-
-        Session(
-            session_id="S1",
-            title="AI Ethics",
-            speaker="Dr Sharma",
-            duration_minutes=60,
-            priority=1,
-            day=1
-        ),
-
-        Session(
-            session_id="S2",
-            title="LLM Workshop",
-            speaker="Dr Gupta",
-            duration_minutes=60,
-            priority=1,
-            day=1
-        )
-    ]
-
-    request3 = ScheduleRequest(
-        event_name="Room Conflict",
-        days=2,
-        sessions=sessions_room_conflict,
-        venues=[Venue(name="Hall A", capacity=100)],
-        constraints=[]
-    )
-
-    run_test_case("Room Conflict Resolution", request3)
-
-    # -------------------------------------------------
-    # TEST 4 — CROSS DAY SCHEDULING
-    # -------------------------------------------------
-
-    sessions_cross_day = [
-
-        Session(
-            session_id="S1",
-            title="AI Ethics",
-            speaker="Dr Sharma",
-            duration_minutes=120,
-            priority=3,
-            day=1
-        ),
-
-        Session(
-            session_id="S2",
-            title="LLM Workshop",
-            speaker="Dr Gupta",
-            duration_minutes=120,
-            priority=2,
-            day=1
-        ),
-
-        Session(
-            session_id="S3",
-            title="Robotics",
-            speaker="Dr Mehta",
-            duration_minutes=120,
-            priority=1,
-            day=1
-        ),
-
-        Session(
-            session_id="S4",
-            title="Computer Vision",
-            speaker="Dr Singh",
-            duration_minutes=120,
-            priority=1,
-            day=1
-        )
-    ]
-
-    request4 = ScheduleRequest(
-        event_name="Cross Day Movement",
-        days=3,
-        sessions=sessions_cross_day,
-        venues=[Venue(name="Hall A", capacity=100)],
-        constraints=[]
-    )
-
-    run_test_case("Cross Day Scheduling", request4)
-
-    # -------------------------------------------------
-    # TEST 5 — NATURAL LANGUAGE CONSTRAINT
-    # -------------------------------------------------
-
-    sessions_constraint = [
-
-        Session(
-            session_id="S1",
-            title="AI Ethics",
-            speaker="Dr Sharma",
-            duration_minutes=60,
-            priority=2,
-            day=1
-        ),
-
-        Session(
-            session_id="S2",
-            title="Robotics",
-            speaker="Dr Mehta",
-            duration_minutes=60,
-            priority=1,
-            day=1
-        )
-    ]
-
-    request5 = ScheduleRequest(
-        event_name="Constraint Test",
-        days=2,
-        sessions=sessions_constraint,
-        venues=venues,
-        constraints=[
-            "Dr Sharma only available after 14:00"
-        ]
-    )
-
-    run_test_case("Natural Language Constraint", request5)
-
-    # -------------------------------------------------
-    # TEST 6 — WHAT IF SIMULATION
-    # -------------------------------------------------
-
-    sessions_whatif = [
-
-        Session(
-            session_id="S1",
-            title="AI Ethics",
-            speaker="Dr Sharma",
-            duration_minutes=60,
-            priority=2,
-            day=1
-        ),
-
-        Session(
-            session_id="S2",
-            title="Robotics",
-            speaker="Dr Mehta",
-            duration_minutes=60,
-            priority=1,
-            day=1
-        )
-    ]
-
-    request6 = ScheduleRequest(
-        event_name="What If Test",
-        days=2,
-        sessions=sessions_whatif,
-        venues=venues,
-        constraints=[],
-        what_if={
-            "session_id": "S1",
-            "new_time": "15:00"
-        }
-    )
-
-    run_test_case("What If Simulation", request6)
-
-
-if __name__ == "__main__":
-    main()
+print("\nReasoning:")
+print(result.reasoning)

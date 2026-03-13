@@ -1,97 +1,209 @@
-from app.schemas.chronos_schema import ScheduleRequest, ScheduleResult
+from app.schemas.chronos_schema import (
+    ScheduleRequest,
+    ScheduleResult,
+    ScheduledSession,
+    Conflict,
+    Resolution
+)
 
-from app.scheduler_engine.schedule_optimizer import build_schedule
-from app.scheduler_engine.conflict_detector import detect_conflicts
-from app.scheduler_engine.resolution_engine import resolve_conflicts
+from app.scheduler_engine.schedule_builder import build_schedule
 from app.scheduler_engine.constraint_parser import parse_constraints
 from app.scheduler_engine.constraint_optimizer import apply_constraints
-from app.scheduler_engine.what_if_engine import simulate_change
+from app.scheduler_engine.conflict_detector import detect_conflicts
+from app.scheduler_engine.resolution_engine import resolve_conflicts
 
 from app.services.llm_service import get_llm
 
 
-def chronos_agent(request: ScheduleRequest):
+def chronos_agent(request: ScheduleRequest) -> ScheduleResult:
 
-    # STEP 1 — Parse natural language constraints
+    reasoning_steps = []
+    reasoning_steps.append("Initializing Chronos scheduling engine")
+
+    # ------------------------------------------------
+    # STEP 1 — BUILD INITIAL SCHEDULE
+    # ------------------------------------------------
+
+    schedule = build_schedule(
+        sessions=request.sessions,
+        venues=request.venues,
+        fixed_slots=request.fixed_slots,
+        days=request.days
+    )
+
+    reasoning_steps.append(
+        f"Generated initial schedule with {len(schedule)} sessions"
+    )
+
+    # ------------------------------------------------
+    # STEP 2 — PARSE CONSTRAINTS
+    # ------------------------------------------------
+
     structured_constraints = []
 
     if request.constraints:
         structured_constraints = parse_constraints(request.constraints)
 
-    # STEP 2 — Build schedule
-    schedule = build_schedule(
-        sessions=[s.dict() for s in request.sessions],
-        venues=[v.dict() for v in request.venues]
+    reasoning_steps.append(
+        f"Parsed {len(structured_constraints)} scheduling constraints"
     )
 
-    # STEP 3 — Apply constraint optimizer
+    # ------------------------------------------------
+    # STEP 3 — APPLY CONSTRAINTS
+    # ------------------------------------------------
+
+    warnings = []
+
     if structured_constraints:
-        schedule = apply_constraints(schedule, structured_constraints)
 
-    # STEP 4 — Detect conflicts
-    conflicts = detect_conflicts(schedule)
+        reasoning_steps.append("Applying scheduling constraints")
 
+        schedule, warnings = apply_constraints(schedule, structured_constraints)
+
+        for w in warnings:
+            reasoning_steps.append(f"Constraint adjustment: {w}")
+
+    # ------------------------------------------------
+    # STEP 4 — DETECT CONFLICTS
+    # ------------------------------------------------
+
+    raw_conflicts = detect_conflicts(schedule)
+
+    conflicts = []
     resolutions = []
 
-    # STEP 5 — Resolve conflicts
-    if conflicts:
-        schedule, resolutions = resolve_conflicts(schedule, conflicts)
+    if raw_conflicts:
+        reasoning_steps.append(
+            f"Detected {len(raw_conflicts)} scheduling conflicts"
+        )
+    else:
+        reasoning_steps.append("No conflicts detected in schedule")
 
-    # STEP 6 — Optional what‑if simulation
-    simulation_result = None
+    # Convert raw conflicts to schema objects
 
-    if hasattr(request, "what_if") and request.what_if:
+    for c in raw_conflicts:
 
-        simulation_result = simulate_change(
-            schedule,
-            request.what_if.get("session_id"),
-            request.what_if.get("new_time")
+        conflicts.append(
+            Conflict(
+                type=c.get("type"),
+                severity=c.get("severity"),
+                description=c.get("description"),
+                sessions_involved=c.get("sessions_involved", [])
+            )
         )
 
-    # STEP 7 — Generate reasoning
+    # ------------------------------------------------
+    # STEP 5 — RESOLVE CONFLICTS
+    # ------------------------------------------------
+
+    if raw_conflicts:
+
+        reasoning_steps.append("Attempting to resolve scheduling conflicts")
+
+        venue_names = [v.name for v in request.venues]
+
+        schedule, raw_resolutions = resolve_conflicts(
+            schedule,
+            conflicts,
+            venue_names,
+            request.days
+        )
+
+        for r in raw_resolutions:
+
+            resolutions.append(
+                Resolution(
+                    conflict_type=r.conflict_type,
+                    action_taken=r.action_taken,
+                    sessions_moved=r.sessions_moved,
+                    participants_affected=r.participants_affected
+                )
+            )
+
+            reasoning_steps.append(r.action_taken)
+
+    reasoning_steps.append("Schedule finalized successfully")
+
+    # ------------------------------------------------
+    # STEP 6 — CONVERT TO TIMELINE
+    # ------------------------------------------------
+
+    timeline = []
+
+    for s in schedule:
+
+        timeline.append(
+            ScheduledSession(
+                id=str(s["id"]),
+                title=s["title"],
+                session_type=s.get("session_type", "talk"),
+                speaker=s.get("speaker"),
+                venue=s.get("venue"),
+                day=int(s.get("day")),
+                start_time=s.get("start_time"),
+                end_time=s.get("end_time"),
+                capacity=s.get("capacity"),
+                status=s.get("status", "scheduled")
+            )
+        )
+
+    # ------------------------------------------------
+    # STEP 7 — GENERATE REASONING SUMMARY
+    # ------------------------------------------------
+
     llm = get_llm()
 
     reasoning_prompt = f"""
 You are Chronos, an AI scheduling intelligence.
 
-Analyze the schedule and explain the reasoning.
+Explain the scheduling outcome briefly.
 
-Event Name:
+Event:
 {request.event_name}
 
-Generated Schedule:
-{schedule}
+Reasoning Steps:
+{reasoning_steps}
 
-Constraints Interpreted:
-{structured_constraints}
+Final Timeline:
+{timeline}
 
-Conflicts Detected:
+Conflicts:
 {conflicts}
 
-Resolutions Applied:
+Resolutions:
 {resolutions}
 
-If constraints were enforced, explain how they changed the schedule.
-
-Explain briefly and clearly.
+Provide a short explanation.
 """
 
-    reasoning = llm.invoke(reasoning_prompt).content
+    reasoning_summary = llm.invoke(reasoning_prompt).content
 
-    # STEP 8 — Cascade triggers
-    cascade = []
+    reasoning = "\n".join(reasoning_steps) + "\n\n" + reasoning_summary
 
-    if resolutions:
-        cascade = ["hermes_agent", "apollo_agent"]
+    # ------------------------------------------------
+    # FINAL RESULT
+    # ------------------------------------------------
 
-    # STEP 9 — Return result
     return ScheduleResult(
-        timeline=schedule,
+        timeline=timeline,
         conflicts_found=conflicts,
         conflicts_resolved=resolutions,
-        warnings=[],
-        affected_participants=[],
-        cascade_to=cascade,
-        reasoning=reasoning,
-        simulation=simulation_result
+        warnings=warnings,
+        reasoning=reasoning
     )
+
+
+def remove_session(schedule, session_id):
+    """
+    Remove a session directly from the timeline.
+    """
+
+    updated_schedule = [
+        s for s in schedule if s["id"] != session_id
+    ]
+
+    return {
+        "status": "session_removed",
+        "removed_session": session_id,
+        "updated_schedule": updated_schedule
+    }

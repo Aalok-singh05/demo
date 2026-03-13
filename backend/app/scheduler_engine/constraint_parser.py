@@ -1,10 +1,12 @@
 import json
+from typing import List, Dict
 from app.services.llm_service import get_llm
 
 
-def parse_constraints(constraints):
+def parse_constraints(constraints: List[str]) -> List[Dict]:
     """
-    Convert natural language constraints into structured rules.
+    Convert natural language constraints into structured rules
+    that the constraint optimizer can understand.
     """
 
     if not constraints:
@@ -13,28 +15,38 @@ def parse_constraints(constraints):
     llm = get_llm()
 
     prompt = f"""
-You are a scheduling rules parser.
+You are a scheduling rule parser.
 
-Convert the following constraints into STRICT JSON.
+Convert natural language scheduling constraints into STRICT JSON.
 
 Allowed rule types:
-- start_after
-- start_before
-- must_be_on_day
-- cannot_be_on_day
-- preferred_room
 
-Return ONLY valid JSON.
+1. start_after
+Example:
+"Dr Sharma only available after 14:00"
+→ {{"type": "start_after", "speaker": "Dr Sharma", "time": "14:00"}}
 
-Example output:
+2. start_before
+Example:
+"Dr Mehta must speak before 12:00"
+→ {{"type": "start_before", "speaker": "Dr Mehta", "time": "12:00"}}
 
-[
-  {{
-    "speaker": "Dr Sharma",
-    "type": "start_after",
-    "time": "14:00"
-  }}
-]
+3. must_be_on_day
+Example:
+"Keynote must be on Day 1"
+→ {{"type": "must_be_on_day", "session_type": "keynote", "day": 1}}
+
+4. cannot_be_on_day
+Example:
+"Workshops cannot be on Day 1"
+→ {{"type": "cannot_be_on_day", "session_type": "workshop", "day": 1}}
+
+5. preferred_venue
+Example:
+"Dr Sharma prefers Hall A"
+→ {{"type": "preferred_venue", "speaker": "Dr Sharma", "venue": "Hall A"}}
+
+Return ONLY valid JSON list.
 
 Constraints:
 {constraints}
@@ -45,15 +57,13 @@ Constraints:
     content = response.content.strip()
 
     try:
-        parsed = json.loads(content)
-        return parsed
+        return json.loads(content)
 
     except Exception:
-        # fallback if model adds text before JSON
+        # fallback if model adds extra text
         try:
             start = content.index("[")
             end = content.rindex("]") + 1
-            json_part = content[start:end]
-            return json.loads(json_part)
+            return json.loads(content[start:end])
         except Exception:
             return []
