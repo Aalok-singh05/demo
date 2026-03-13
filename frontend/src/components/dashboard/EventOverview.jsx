@@ -8,7 +8,7 @@ const EventOverview = () => {
 
     useEffect(() => {
         getDashboard()
-            .then(setEvent)
+            .then(res => setEvent(res.event || null))
             .catch(() => setEvent(null))
             .finally(() => setLoading(false));
     }, []);

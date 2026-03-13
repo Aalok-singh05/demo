@@ -15,7 +15,7 @@ const MailCenter = () => {
 
   useEffect(() => {
     getParticipants()
-      .then(setParticipants)
+      .then(res => setParticipants(res.participants || []))
       .catch(() => setParticipants([]))
       .finally(() => setLoading(false));
   }, []);

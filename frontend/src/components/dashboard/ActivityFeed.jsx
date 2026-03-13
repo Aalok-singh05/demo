@@ -30,17 +30,17 @@ const ActivityFeed = () => {
     // Fetch initial history
     useEffect(() => {
         getActivity()
-            .then(setActivities)
+            .then(res => setActivities(res.activities || []))
             .catch(() => setActivities([]))
             .finally(() => setLoading(false));
     }, []);
 
     // Live updates via WebSocket
-    const { lastMessage, isConnected } = useWebSocket('/ws/activity', {
+    const { lastMessage, isConnected } = useWebSocket('/ws/stream', {
         onMessage: (msg) => {
             if (msg.type === 'agent_activity' || msg.type === 'activity') {
                 const newItem = {
-                    id: Date.now(),
+                    id: Date.now() + Math.random(),
                     time: msg.timestamp || new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
                     agent: msg.data?.agent || 'System',
                     text: msg.data?.text || '',
@@ -99,10 +99,10 @@ const ActivityFeed = () => {
                                             {item.status === 'working' && <span className="text-[10px] text-warning bg-warning/10 px-1.5 py-0.5 rounded border border-warning/20">Working</span>}
                                         </div>
                                         {/* Updated inner card background to #404146 */}
-                                        <div className="bg-black/30 border border-white/10 rounded-lg p-3 text-sm text-gray-300">
-                                            <p>{item.text}</p>
+                                        <div className="bg-black/30 border border-white/10 rounded-lg p-3 text-sm text-gray-300 overflow-x-auto whitespace-pre-wrap">
+                                            <p>{typeof item.text === 'object' ? JSON.stringify(item.text, null, 2) : item.text}</p>
                                             {item.details && (
-                                                <p className="mt-2 text-xs text-gray-500 border-t border-white/10 pt-2">{item.details}</p>
+                                                <p className="mt-2 text-xs text-gray-500 border-t border-white/10 pt-2">{typeof item.details === 'object' ? JSON.stringify(item.details, null, 2) : item.details}</p>
                                             )}
                                         </div>
                                     </div>

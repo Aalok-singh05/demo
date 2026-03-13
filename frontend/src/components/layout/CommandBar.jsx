@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react';
-import { Search, Bell, User, Send, Loader2, Cpu } from 'lucide-react';
-import { sendChat } from '../../services/api';
+import { Search, Bell, Send, Loader2, Cpu } from 'lucide-react';
+import { invokeAgent } from '../../services/api';
+import { useNavigate } from 'react-router-dom';
 
 const CommandBar = () => {
     const [input, setInput] = useState('');
@@ -8,6 +9,7 @@ const CommandBar = () => {
     const [response, setResponse] = useState(null);
     const [showPanel, setShowPanel] = useState(false);
     const inputRef = useRef(null);
+    const navigate = useNavigate();
 
     const handleSubmit = async (e) => {
         e?.preventDefault();
@@ -15,11 +17,12 @@ const CommandBar = () => {
         setLoading(true);
         setShowPanel(true);
         try {
-            const result = await sendChat(input);
+            // Using the single centralized LangGraph orchestrator endpoint!
+            const result = await invokeAgent(input);
             setResponse(result);
             setInput('');
         } catch (err) {
-            setResponse({ reply: 'Failed to reach Nexus Core. Please try again.', plan: [], agents_involved: [] });
+            setResponse({ error: 'Failed to reach Nexus Core orchestrator. Please try again.' });
         }
         setLoading(false);
     };
@@ -35,15 +38,6 @@ const CommandBar = () => {
         }
     };
 
-    const agentColorMap = {
-        Chronos: 'text-agents-chronos',
-        Hermes: 'text-agents-hermes',
-        Apollo: 'text-agents-apollo',
-        Athena: 'text-agents-athena',
-        'Nexus Core': 'text-primary',
-        Fortuna: 'text-warning',
-    };
-
     return (
         <>
             <header className="h-16 border-b border-white/10 glass-card !rounded-none !shadow-none !border-x-0 !border-t-0 flex items-center justify-between px-6 sticky top-0 z-10 w-full">
@@ -57,7 +51,7 @@ const CommandBar = () => {
                         value={input}
                         onChange={e => setInput(e.target.value)}
                         onKeyDown={handleKeyDown}
-                        placeholder="Command Nexus (e.g. 'Add a surprise keynote by the CEO to Day 2')"
+                        placeholder="Command the Swarm (e.g. 'Draft a tweet about the new schedule' or 'Find sponsors')"
                         className="w-full bg-black/40 border border-white/10 rounded-lg pl-10 pr-20 py-2 text-sm text-text-primary focus:outline-none focus:border-white/30 focus:ring-1 focus:ring-white/30 transition-all placeholder-gray-500"
                     />
                     <div className="absolute inset-y-0 right-0 pr-3 flex items-center gap-2">
@@ -71,8 +65,13 @@ const CommandBar = () => {
                 </form>
 
                 <div className="flex items-center space-x-4 ml-6">
-                    <button className="relative p-2 text-text-secondary hover:text-white transition-colors">
+                    <button 
+                        onClick={() => navigate('/dashboard/approvals')}
+                        className="relative p-2 text-text-secondary hover:text-white transition-colors"
+                        title="Pending Approvals"
+                    >
                         <Bell size={20} />
+                        {/* We will later hook this glow up to the websocket context! */}
                         <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-error rounded-full animate-pulse"></span>
                     </button>
                     <div className="flex items-center space-x-3 pl-4 border-l border-white/10">
@@ -89,7 +88,7 @@ const CommandBar = () => {
 
             {/* Nexus Core Response Panel */}
             {showPanel && response && (
-                <div className="border-b border-primary/30 bg-primary/5 px-6 py-4 backdrop-blur-sm relative z-10">
+                <div className="border-b border-primary/30 bg-primary/5 px-6 py-4 backdrop-blur-sm relative z-10 w-full transition-all">
                     <div className="max-w-4xl mx-auto">
                         <div className="flex items-start gap-3">
                             <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center flex-shrink-0 mt-0.5">
@@ -97,28 +96,21 @@ const CommandBar = () => {
                             </div>
                             <div className="flex-1">
                                 <div className="flex items-center gap-2 mb-2">
-                                    <span className="text-primary font-semibold text-sm">Nexus Core</span>
-                                    {response.agents_involved?.length > 0 && (
-                                        <span className="text-[10px] text-gray-400">
-                                            → {response.agents_involved.map(a => (
-                                                <span key={a} className={`${agentColorMap[a] || 'text-gray-400'} font-medium mx-0.5`}>{a}</span>
-                                            ))}
-                                        </span>
-                                    )}
+                                    <span className="text-primary font-semibold text-sm">Nexus Orchestrator Response</span>
                                 </div>
-                                <p className="text-sm text-gray-300 mb-3">{response.reply}</p>
-                                {response.plan?.length > 0 && (
-                                    <div className="bg-background/50 border border-gray-800 rounded-lg p-3">
-                                        <div className="text-[10px] text-gray-500 uppercase font-semibold mb-2">Execution Plan</div>
-                                        <ol className="space-y-1.5">
-                                            {response.plan.map((step, i) => (
-                                                <li key={i} className="text-xs text-gray-400 flex items-start gap-2">
-                                                    <span className="text-primary font-bold mt-0.5">{i + 1}.</span>
-                                                    <span>{step}</span>
-                                                </li>
-                                            ))}
-                                        </ol>
-                                    </div>
+                                
+                                {response.error ? (
+                                     <p className="text-sm text-error mb-3">{response.error}</p>
+                                ) : (
+                                    <>
+                                        <p className="text-sm text-gray-300 mb-3">Command received and delegated to the Swarm.</p>
+                                        <div className="bg-background/50 border border-gray-800 rounded-lg p-3 overflow-x-auto">
+                                            <div className="text-[10px] text-gray-500 uppercase font-semibold mb-2">Internal State Update</div>
+                                            <pre className="text-xs text-info font-mono">
+                                                {JSON.stringify(response, null, 2)}
+                                            </pre>
+                                        </div>
+                                    </>
                                 )}
                             </div>
                             <button onClick={() => { setShowPanel(false); setResponse(null); }} className="text-gray-500 hover:text-white text-xs">✕</button>

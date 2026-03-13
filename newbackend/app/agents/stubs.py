@@ -289,3 +289,63 @@ async def analytics_agent_stub(state: dict) -> dict:
             # ],
         },
     }
+
+
+async def fortuna_agent_stub(state: dict) -> dict:
+    """
+    Mock Finance/Sponsorship Agent (Fortuna).
+    
+    In production, this would:
+    1. Analyze the event budget and compute spending velocity.
+    2. Identify potential high-value sponsors based on the event theme.
+    3. Draft sponsorship pitch emails for the organizer.
+    4. Detect budget overruns and suggest cost-saving measures.
+    
+    For now, returns mock financial and sponsorship data.
+    """
+    user_input = state.get("user_input", "")
+
+    return {
+        "finance_output": {
+            "total_budget": 50000.0,
+            "total_spent": 12500.0,
+            "remaining_balance": 37500.0,
+            "line_items": [
+                {"category": "Venue", "allocated": 20000.0, "spent": 10000.0, "status": "on_track"},
+                {"category": "Marketing", "allocated": 5000.0, "spent": 2000.0, "status": "on_track"},
+                {"category": "Catering", "allocated": 15000.0, "spent": 500.0, "status": "under_budget"},
+            ],
+            "sponsor_targets": [
+                {
+                    "id": "sponsor_1",
+                    "company_name": "TechGlobal Corp",
+                    "industry": "Cloud Computing",
+                    "estimated_value": "$10,000",
+                    "pitch_angle": "Focus on developer recruitment since 40% of attendees are students.",
+                },
+                {
+                    "id": "sponsor_2",
+                    "company_name": "StartUp Hub",
+                    "industry": "Venture Capital",
+                    "estimated_value": "$5,000",
+                    "pitch_angle": "Pitch as an opportunity to scout early stage biotech projects.",
+                }
+            ],
+            "requires_approval": True,
+            "approval_items": [
+                {
+                    "id": "approval_finance_1",
+                    "agent": "fortuna",
+                    "action": "send_sponsor_pitch",
+                    "description": "Send initial sponsorship pitch email to TechGlobal Corp.",
+                    "impact": "Potential $10,000 revenue. Will email their VP of Marketing.",
+                    "preview": {"subject": "Partnership Opportunity: TechFest 2026", "recipient": "vp@techglobal.com"},
+                }
+            ],
+            "reasoning": (
+                f"[MOCK] Processed finance request: '{user_input[:60]}'. "
+                "In production, Fortuna would analyze actual budget constraints and use an LLM "
+                "to match audience demographics to ideal corporate sponsors."
+            ),
+        },
+    }

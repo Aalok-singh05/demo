@@ -19,7 +19,8 @@ const ScheduleView = () => {
 
   useEffect(() => {
     getSessions()
-      .then(data => {
+      .then(res => {
+        const data = res.sessions || [];
         setSessions(data);
         setConflicts(data.filter(s => s.has_conflict));
       })

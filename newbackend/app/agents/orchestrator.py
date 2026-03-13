@@ -36,6 +36,7 @@ from app.agents.stubs import (
     mailer_agent_stub,
     content_agent_stub,
     analytics_agent_stub,
+    fortuna_agent_stub,
 )
 
 # Import WebSocket manager for real-time streaming
@@ -79,6 +80,7 @@ class NexusState(TypedDict, total=False):
     mailer_output: dict      # Output from Hermes (Mail Agent)
     content_output: dict     # Output from Apollo (Content Agent)
     analytics_output: dict   # Output from Athena (Analytics Agent)
+    finance_output: dict     # Output from Fortuna (Finance Agent)
 
     # ---- Cascading / Coordination ----
     pending_tasks: list      # Tasks that need another agent to handle
@@ -159,6 +161,7 @@ def _classify_request(user_input: str) -> str:
     mail_keywords = ["email", "mail", "send", "notification", "csv", "participant", "invite", "remind"]
     content_keywords = ["content", "social", "post", "campaign", "marketing", "promote", "tweet", "linkedin"]
     analytics_keywords = ["analytics", "insight", "report", "trend", "capacity", "risk", "summary", "metric"]
+    finance_keywords = ["budget", "finance", "sponsor", "revenue", "cost", "money", "spend", "ticket"]
 
     if any(kw in user_input for kw in schedule_keywords):
         return "schedule"
@@ -168,6 +171,8 @@ def _classify_request(user_input: str) -> str:
         return "content"
     elif any(kw in user_input for kw in analytics_keywords):
         return "analytics"
+    elif any(kw in user_input for kw in finance_keywords):
+        return "finance"
     else:
         return "general"  # Default to general (router will pick scheduler)
 
@@ -179,6 +184,7 @@ def _type_to_agent(request_type: str) -> str:
         "mail": "hermes",
         "content": "apollo",
         "analytics": "athena",
+        "finance": "fortuna",
         "general": "chronos",  # Default to scheduler
     }.get(request_type, "chronos")
 
@@ -190,6 +196,7 @@ def _agent_to_type(agent_name: str) -> str:
         "hermes": "mail",
         "apollo": "content",
         "athena": "analytics",
+        "fortuna": "finance",
     }.get(agent_name, "general")
 
 
@@ -215,6 +222,7 @@ def decide_agent(state: NexusState) -> str:
         "mail": "hermes",
         "content": "apollo",
         "analytics": "athena",
+        "finance": "fortuna",
         "general": "chronos",  # Default
     }
     return routing.get(request_type, "chronos")
@@ -329,6 +337,30 @@ async def athena_node(state: NexusState) -> dict:
         return {"error": str(e)}
 
 
+async def fortuna_node(state: NexusState) -> dict:
+    """Execute the Finance Agent (Fortuna)."""
+    await ws_manager.send_agent_status("fortuna", "working", "Analyzing budget and sponsors...")
+    state_manager.update_agent_status("fortuna", "working", "Analyzing budget and sponsors")
+
+    try:
+        result = await fortuna_agent_stub(state)
+        await ws_manager.send_agent_complete("fortuna", result.get("finance_output", {}))
+        state_manager.update_agent_status("fortuna", "done", "Financial analysis complete")
+
+        state_manager.add_activity({
+            "agent": "fortuna",
+            "action": "finance_processed",
+            "details": result.get("finance_output", {}).get("reasoning", "Financial analysis complete"),
+        })
+
+        return result
+
+    except Exception as e:
+        await ws_manager.send_error("fortuna", str(e))
+        state_manager.update_agent_status("fortuna", "error", str(e))
+        return {"error": str(e)}
+
+
 # ============================================================================
 # EVALUATOR NODE — Checks if cascading work is needed
 # ============================================================================
@@ -352,7 +384,7 @@ async def evaluate_and_cascade(state: NexusState) -> dict:
         completed_task = pending.pop(0)
 
     # Check the last agent's output for new cascading tasks
-    for output_key in ["scheduler_output", "mailer_output", "content_output", "analytics_output"]:
+    for output_key in ["scheduler_output", "mailer_output", "content_output", "analytics_output", "finance_output"]:
         output = state.get(output_key)
         if output and output.get("cascade_to"):
             for cascade in output["cascade_to"]:
@@ -371,7 +403,7 @@ async def evaluate_and_cascade(state: NexusState) -> dict:
                 )
 
     # Check if the last agent needs approval
-    for output_key in ["scheduler_output", "mailer_output", "content_output"]:
+    for output_key in ["scheduler_output", "mailer_output", "content_output", "finance_output"]:
         output = state.get(output_key)
         if output and output.get("requires_approval"):
             approval_items = output.get("approval_items", [])
@@ -462,6 +494,7 @@ def build_nexus_graph() -> StateGraph:
     graph.add_node("hermes", hermes_node)
     graph.add_node("apollo", apollo_node)
     graph.add_node("athena", athena_node)
+    graph.add_node("fortuna", fortuna_node)
     graph.add_node("evaluator", evaluate_and_cascade)
 
     # ---- Set the entry point ----
@@ -478,12 +511,13 @@ def build_nexus_graph() -> StateGraph:
             "hermes": "hermes",
             "apollo": "apollo",
             "athena": "athena",
+            "fortuna": "fortuna",
         }
     )
 
     # ---- Each Agent → Evaluator (fixed edges) ----
     # After any agent finishes, always go to the evaluator
-    for agent_name in ["chronos", "hermes", "apollo", "athena"]:
+    for agent_name in ["chronos", "hermes", "apollo", "athena", "fortuna"]:
         graph.add_edge(agent_name, "evaluator")
 
     # ---- Evaluator → Next step (conditional edge) ----
@@ -496,6 +530,7 @@ def build_nexus_graph() -> StateGraph:
             "hermes": "hermes",
             "apollo": "apollo",
             "athena": "athena",
+            "fortuna": "fortuna",
             "done": END,
             "approval_needed": END,  # Pause for human approval
         }
@@ -554,6 +589,7 @@ async def run_orchestrator(
         "mailer_output": {},
         "content_output": {},
         "analytics_output": {},
+        "finance_output": {},
         "pending_tasks": [],
         "messages": [],
         "activity_log": [],

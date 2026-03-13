@@ -19,7 +19,7 @@ const QuickInsights = () => {
 
     useEffect(() => {
         getInsights()
-            .then(setInsights)
+            .then(res => setInsights(res.insights || []))
             .catch(() => setInsights([]))
             .finally(() => setLoading(false));
     }, []);

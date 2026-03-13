@@ -13,7 +13,7 @@ const ContentStudio = () => {
 
   // Load existing content queue
   useEffect(() => {
-    getContentQueue().then(setQueue).catch(() => {});
+    getContentQueue().then(res => setQueue(res.queue || [])).catch(() => {});
   }, []);
 
   const togglePlatform = (p) => {

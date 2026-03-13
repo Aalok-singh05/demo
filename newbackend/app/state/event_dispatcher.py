@@ -52,6 +52,7 @@ EVENT_AGENT_MAP: Dict[str, List[Dict[str, str]]] = {
     EventType.PARTICIPANT_DATA_UPLOADED: [
         {"agent": "hermes", "task": "parse_and_validate_data", "request_type": "mail"},
         {"agent": "athena", "task": "analyze_registrations", "request_type": "analytics"},
+        {"agent": "fortuna", "task": "evaluate_sponsor_targets", "request_type": "finance"},
     ],
     EventType.SCHEDULE_CONSTRAINT_CHANGED: [
         {"agent": "chronos", "task": "rebuild_schedule", "request_type": "schedule"},
@@ -72,6 +73,9 @@ EVENT_AGENT_MAP: Dict[str, List[Dict[str, str]]] = {
     ],
     EventType.CAPACITY_WARNING: [
         {"agent": "chronos", "task": "suggest_room_swap", "request_type": "schedule"},
+    ],
+    "BUDGET_UPDATED": [
+        {"agent": "fortuna", "task": "recalculate_runway", "request_type": "finance"},
     ],
 }
 

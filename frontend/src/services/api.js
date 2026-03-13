@@ -22,63 +22,60 @@ async function request(path, options = {}) {
   }
 }
 
-// ── Dashboard ────────────────────────────────────────────
-export const getDashboard = () => request('/dashboard');
-export const getActivity = () => request('/activity');
-export const getApprovals = () => request('/approvals');
+// ── Dashboard & Activity ─────────────────────────────────────
+export const getDashboard = () => 
+  request('/events/default_event').catch(err => {
+    console.warn("Default event not found, returning mock data");
+    return {
+      name: "TechSummit 2026",
+      status: "planning",
+      finance_output: null
+    };
+  }); // Gets the current event state
+export const getActivity = () => request('/activity');              // Gets the agent logs
+export const getApprovals = () => request('/approvals');            // Will get pending approvals (needs backend route if not exist)
 export const handleApproval = (id, action) =>
-  request(`/approvals/${id}/action`, {
+  request(`/approval/${id}?decision=${encodeURIComponent(action)}`, {
     method: 'POST',
-    body: JSON.stringify({ action }),
   });
-export const getInsights = () => request('/insights');
 
-// ── Schedule ─────────────────────────────────────────────
-export const getSessions = () => request('/schedule/sessions');
-export const createSession = (data) =>
-  request('/schedule/sessions', { method: 'POST', body: JSON.stringify(data) });
-export const updateSession = (id, data) =>
-  request(`/schedule/sessions/${id}`, { method: 'PUT', body: JSON.stringify(data) });
-export const optimizeSchedule = () =>
-  request('/schedule/optimize', { method: 'POST' });
-
-// ── Mail Center ──────────────────────────────────────────
-export const getParticipants = () => request('/mail/participants');
+// ── File Uploads (Event Dispatcher Trigger) ──────────────────
 export const uploadParticipants = async (file) => {
   const formData = new FormData();
   formData.append('file', file);
-  const res = await fetch(`${API_BASE}/mail/upload`, {
+  // Matches our actual backend route for CSV uploads
+  const res = await fetch(`${API_BASE}/upload/participants`, {
     method: 'POST',
     body: formData,
   });
   if (!res.ok) throw new Error('Upload failed');
   return res.json();
 };
-export const personalizeEmails = (template, segment) =>
-  request('/mail/personalize', {
-    method: 'POST',
-    body: JSON.stringify({ template, segment_criteria: segment }),
-  });
-export const sendBatch = () =>
-  request('/mail/send', { method: 'POST' });
 
-// ── Content Studio ───────────────────────────────────────
-export const generateContent = (brief, platforms, tone) =>
-  request('/content/generate', {
+// ── The Centralized Agent Invoker ────────────────────────────
+// Replaces ALL previous generation endpoints (optimize, generate, sendBatch, sendChat)
+export const invokeAgent = (message, requestType = "general") =>
+  request(`/agents/invoke?user_input=${encodeURIComponent(message)}&request_type=${encodeURIComponent(requestType)}`, {
     method: 'POST',
-    body: JSON.stringify({ brief, platforms, tone }),
   });
-export const getContentQueue = () => request('/content/queue');
-export const approveContent = (id) =>
-  request(`/content/queue/${id}/approve`, { method: 'POST' });
 
-// ── Agent System ─────────────────────────────────────────
-export const getAgentStatus = () => request('/agents/status');
-export const getAgentState = () => request('/agents/state');
-export const getAgentLogs = () => request('/agents/logs');
-export const getBudget = () => request('/agents/budget');
-export const sendChat = (message) =>
-  request('/agents/chat', {
-    method: 'POST',
-    body: JSON.stringify({ message }),
-  });
+// Helper functions that wrap the centralized invoker
+export const sendChat = (message) => invokeAgent(message, "general");
+export const optimizeSchedule = (prompt) => invokeAgent(prompt || "Optimize the schedule", "schedule");
+export const generateContent = (prompt) => invokeAgent(prompt || "Generate content", "content");
+export const personalizeEmails = (prompt) => invokeAgent(prompt || "Draft emails", "mail");
+export const analyzeData = (prompt) => invokeAgent(prompt || "Analyze the data", "analytics");
+export const calculateBudget = (prompt) => invokeAgent(prompt || "Calculate the budget", "finance");
+
+// ── State Read-Only (Direct DB queries) ──────────────────────
+export const getSessions = () => request('/schedule');
+export const getContentQueue = () => request('/content');
+
+// ── Missing Additional API Exports ───────────────────────────
+export const getAgentStatus = () => request('/agents/status').then(res => res.agents || []);
+export const getParticipants = () => request('/participants');
+export const sendBatch = (prompt) => invokeAgent(prompt || "Send emails", "mail");
+export const getInsights = async () => []; // Mocked as no backend route exists yet
+export const approveContent = (id) => handleApproval(id, 'approve');
+export const getAgentState = async () => null; // Mocked state
+export const getAgentLogs = () => getActivity().then(res => res.activities || []);

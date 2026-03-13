@@ -39,6 +39,7 @@ class NexusState(TypedDict, total=False):
     mailer_output: dict     # Hermes writes its email drafts and segments here
     content_output: dict    # Apollo writes its social posts here
     analytics_output: dict  # Athena writes its insights and risk flags here
+    finance_output: dict    # Fortuna writes her budget and sponsor targets here
 
     # ---- Coordination & Cascading ----
     pending_tasks: list  # List of tasks triggered by one agent for another

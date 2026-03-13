@@ -9,7 +9,7 @@ const PendingApprovals = () => {
 
   useEffect(() => {
     getApprovals()
-      .then(setApprovals)
+      .then(res => setApprovals(res.approvals || []))
       .catch(() => setApprovals([]))
       .finally(() => setLoading(false));
   }, []);
@@ -60,25 +60,27 @@ const PendingApprovals = () => {
           </div>
         ) : (
           <>
-            {items.map((item) => {
+            {items.map((item, index) => {
               const colors = agentColorMap[item.agent] || { color: 'text-gray-400', bg: 'bg-gray-800' };
               return (
-                <div key={item.id} className="border border-white/10 rounded-lg p-4 bg-black/40 transition-colors hover:border-white/20">
+                <div key={`${item.id}-${index}`} className="border border-white/10 rounded-lg p-4 bg-black/40 transition-colors hover:border-white/20">
                   <div className="flex justify-between items-start mb-3">
                     <div className="flex items-center">
                       <div className={`p-2 rounded mr-3 ${colors.bg} ${colors.color}`}>
                          {item.agent.charAt(0)}
                       </div>
                       <div>
-                        <h4 className="text-sm font-semibold text-white">{item.title}</h4>
-                        <div className="text-xs text-text-secondary">{item.desc} • {item.impact}</div>
+                        <h4 className="text-sm font-semibold text-white">{typeof item.title === 'object' ? JSON.stringify(item.title) : item.title}</h4>
+                        <div className="text-xs text-text-secondary overflow-x-auto whitespace-pre-wrap">
+                          {typeof item.desc === 'object' ? JSON.stringify(item.desc, null, 2) : item.desc} • {typeof item.impact === 'object' ? JSON.stringify(item.impact, null, 2) : item.impact}
+                        </div>
                       </div>
                     </div>
                   </div>
                   
-                  <div className="bg-black/30 p-3 rounded-md mb-4 border border-white/10">
-                    <p className="text-sm text-gray-300 font-serif italic text-ellipsis overflow-hidden whitespace-nowrap">
-                      "{item.preview}"
+                  <div className="bg-black/30 p-3 rounded-md mb-4 border border-white/10 overflow-x-auto whitespace-pre-wrap">
+                    <p className="text-sm text-gray-300 font-serif italic">
+                      {typeof item.preview === 'object' ? JSON.stringify(item.preview, null, 2) : `"${item.preview}"`}
                     </p>
                   </div>
                   
